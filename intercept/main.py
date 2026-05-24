@@ -312,7 +312,7 @@ class InterceptWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Intercept')
+        self.setWindowTitle('Video Life — Intercept')
         self.resize(1120, 760)
         self._apply_palette()
 
@@ -380,10 +380,10 @@ class InterceptWindow(QMainWindow):
         lay.setContentsMargins(18, 0, 18, 0)
         lay.setSpacing(14)
 
-        title = QLabel('INTERCEPT')
+        title = QLabel('VIDEO LIFE — INTERCEPT')
         title.setStyleSheet(
             f'color:{ACCENT}; font-family:{_MONO}; font-size:13px; '
-            f'font-weight:700; letter-spacing:5px;')
+            f'font-weight:700; letter-spacing:4px;')
         lay.addWidget(title)
 
         sub = QLabel('SIGNAL OPERATOR')

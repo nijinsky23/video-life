@@ -214,7 +214,7 @@ class ScanProcessorWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Scan Processor')
+        self.setWindowTitle('Video Life — Scan Processor')
         self.resize(1100, 720)
         self._apply_palette()
 
@@ -271,7 +271,7 @@ class ScanProcessorWindow(QMainWindow):
         lay.setContentsMargins(18, 0, 18, 0)
         lay.setSpacing(14)
 
-        title = QLabel('SCAN PROCESSOR')
+        title = QLabel('VIDEO LIFE — SCAN PROCESSOR')
         title.setStyleSheet(
             f'color:{ACCENT}; font-family:{_MONO}; font-size:13px; '
             f'font-weight:700; letter-spacing:4px;')
