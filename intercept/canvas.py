@@ -74,25 +74,25 @@ class InterceptCanvas(GLBase):
         self._set_uniforms(prog, t, w, h)
 
         # Source textures — bind to units 2, 3, 4 (0 and 1 reserved by GLBase)
+        # IMPORTANT: always set glUniform1i(u_src{i}, 2+i) so the sampler never
+        # defaults to unit 0.  When inactive, blank_tex is bound as a safe fallback.
         locs = self._uniform_locs.get(prog, {})
         for i in range(_NUM_SRCS):
-            unit = GL_TEXTURE2 + i
-            glActiveTexture(unit)
-            if self._src_textures[i] is not None and self._src_active[i]:
+            glActiveTexture(GL_TEXTURE2 + i)
+            active = self._src_textures[i] is not None and self._src_active[i]
+            if active:
                 glBindTexture(GL_TEXTURE_2D, self._src_textures[i])
-                loc = locs.get(f'u_src{i}', -1)
-                if loc >= 0:
-                    glUniform1i(loc, 2 + i)
-                loc = locs.get(f'u_has_src{i}', -1)
-                if loc >= 0:
-                    glUniform1i(loc, 1)
-            else:
-                # Bind blank tex so sampler is always valid
-                if self._blank_tex:
-                    glBindTexture(GL_TEXTURE_2D, self._blank_tex)
-                loc = locs.get(f'u_has_src{i}', -1)
-                if loc >= 0:
-                    glUniform1i(loc, 0)
+            elif self._blank_tex:
+                glBindTexture(GL_TEXTURE_2D, self._blank_tex)
+
+            # Always point the sampler at unit 2+i
+            loc = locs.get(f'u_src{i}', -1)
+            if loc >= 0:
+                glUniform1i(loc, 2 + i)
+
+            loc = locs.get(f'u_has_src{i}', -1)
+            if loc >= 0:
+                glUniform1i(loc, 1 if active else 0)
 
         glActiveTexture(GL_TEXTURE0)
         glBindVertexArray(self._vao)

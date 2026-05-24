@@ -92,8 +92,21 @@ class _CameraSource(_BaseSource):
         self._index = index
 
     def _run(self):
-        cap = cv2.VideoCapture(self._index)
-        if not cap.isOpened():
+        import os
+        # Suppress OpenCV stderr while opening (avoids console spam on bad index)
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        saved_stderr = os.dup(2)
+        os.dup2(devnull_fd, 2)
+        os.close(devnull_fd)
+        try:
+            cap = cv2.VideoCapture(self._index)
+            ok  = cap.isOpened()
+        finally:
+            os.dup2(saved_stderr, 2)
+            os.close(saved_stderr)
+
+        if not ok:
+            cap.release()
             self.error = f'camera {self._index} not available'
             return
         cap.set(cv2.CAP_PROP_FRAME_WIDTH,  _FRAME_W)
@@ -212,17 +225,35 @@ class SignalRouter:
 
     # ── Discovery ─────────────────────────────────────────────────────────────
 
-    def scan_cameras(self, max_index: int = 7) -> list[int]:
-        """Probe camera indices 0..max_index.  Returns list of available indices."""
+    def scan_cameras(self, max_index: int = 5) -> list[int]:
+        """Probe camera indices 0..max_index.  Returns list of available indices.
+        OpenCV logs are suppressed during the probe to keep the console clean."""
+        import os, sys
         found = []
-        print('[Router] scanning for cameras…')
-        for i in range(max_index + 1):
-            cap = cv2.VideoCapture(i)
-            if cap.isOpened():
-                found.append(i)
+        print('[Router] scanning for cameras…', flush=True)
+
+        # Suppress OpenCV's stderr chatter while probing non-existent indices
+        try:
+            cv2.setLogLevel(0)          # silence OpenCV internal messages
+        except AttributeError:
+            pass
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        saved_stderr = os.dup(2)
+        os.dup2(devnull_fd, 2)
+        os.close(devnull_fd)
+
+        try:
+            for i in range(max_index + 1):
+                cap = cv2.VideoCapture(i)
+                if cap.isOpened():
+                    found.append(i)
                 cap.release()
+        finally:
+            os.dup2(saved_stderr, 2)    # restore stderr
+            os.close(saved_stderr)
+
         self._available_cameras = found
-        print(f'[Router] found cameras: {found}')
+        print(f'[Router] found cameras: {found}', flush=True)
         return found
 
     def available_cameras(self) -> list[int]:
