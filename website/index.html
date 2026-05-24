@@ -1,19 +1,485 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Life — Real-time GPU Video Synthesizer</title>
-    <meta name="description" content="Video Life is a free, open-source real-time GPU video synthesizer. 9 GLSL engines, audio/MIDI reactive, Ableton Link sync. Available for macOS, Windows, and Linux." />
-    <meta property="og:title" content="Video Life — Real-time GPU Video Synthesizer" />
-    <meta property="og:description" content="9 GLSL synthesis engines. Audio & MIDI reactive. Ableton Link. Free & open source." />
-    <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#7c3aed" />
-    <!-- Favicon: simple SVG circle -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%237c3aed'/><ellipse cx='16' cy='16' rx='9' ry='15' stroke='%2322d3ee' stroke-width='1.5' fill='none'/><ellipse cx='16' cy='16' rx='15' ry='7' stroke='%23a855f7' stroke-width='1.5' fill='none'/></svg>" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Life — Real-time GPU Video Synthesizer</title>
+  <meta name="description" content="Free, open-source real-time GPU video synthesizer. 9 GLSL synthesis engines, audio & MIDI reactive, Ableton Link sync. Download for macOS, Windows, and Linux." />
+  <meta property="og:title" content="Video Life — Real-time GPU Video Synthesizer" />
+  <meta property="og:description" content="9 GLSL synthesis engines. Audio & MIDI reactive. Ableton Link. Free & open source." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#7c3aed" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#c084fc',
+              500: '#a855f7',
+              600: '#9333ea',
+              700: '#7c3aed',
+              800: '#5b21b6',
+              900: '#4c1d95',
+              950: '#2e1065'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    .code { font-family: 'Menlo', 'Monaco', 'Consolas', monospace; }
+    .gradient-bg { background: linear-gradient(135deg, #0d0b1a 0%, #150f2e 50%, #0d0b1a 100%); }
+    .glow { box-shadow: 0 0 40px rgba(168, 85, 247, 0.2); }
+    .engine-pill {
+      display: inline-block;
+      background: rgba(124,58,237,0.15);
+      border: 1px solid rgba(124,58,237,0.35);
+      color: #c084fc;
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    /* Animated synth preview */
+    @keyframes pulse-slow { 0%,100%{opacity:.6} 50%{opacity:1} }
+    @keyframes scan { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
+    .scanline { animation: scan 3s linear infinite; }
+    .pulse { animation: pulse-slow 2s ease-in-out infinite; }
+    /* Download buttons loading state */
+    .dl-btn[data-loading] { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 antialiased">
+
+  <!-- Nav -->
+  <nav class="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <!-- Logo mark -->
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <circle cx="14" cy="14" r="13" stroke="url(#nav-g)" stroke-width="1.5"/>
+          <ellipse cx="14" cy="14" rx="8" ry="13" stroke="#a855f7" stroke-width="1.2"/>
+          <ellipse cx="14" cy="14" rx="13" ry="6" stroke="#22d3ee" stroke-width="1.2"/>
+          <circle cx="14" cy="14" r="2.5" fill="#c084fc"/>
+          <defs>
+            <linearGradient id="nav-g" x1="1" y1="1" x2="27" y2="27">
+              <stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="font-semibold text-white">Video Life</span>
+      </div>
+      <a href="#download" class="bg-brand-700 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+        Download Free
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="gradient-bg py-24 px-6 text-center">
+    <div class="max-w-3xl mx-auto">
+      <div class="inline-flex items-center gap-2 bg-brand-950/60 border border-brand-800 text-brand-400 text-xs font-medium px-3 py-1.5 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-400 pulse"></span>
+        Free &amp; open source · macOS · Windows · Linux
+      </div>
+      <h1 class="text-5xl md:text-6xl font-extrabold text-white leading-tight mb-6">
+        Real-time GPU<br />
+        <span class="text-brand-400">video synthesizer.</span>
+      </h1>
+      <p class="text-xl text-gray-400 mb-8 leading-relaxed max-w-2xl mx-auto">
+        9 GLSL synthesis engines. Audio &amp; MIDI reactive. Ableton Link beat sync.
+        Live camera input. Record to MP4. Built for live performance and installation art.
+      </p>
+      <!-- Engine pills -->
+      <div class="flex flex-wrap justify-center gap-2 mb-10">
+        <span class="engine-pill">Lissajous</span>
+        <span class="engine-pill">Plasma</span>
+        <span class="engine-pill">Ramp Colorizer</span>
+        <span class="engine-pill">Feedback</span>
+        <span class="engine-pill">Kaleidoscope</span>
+        <span class="engine-pill">Waveform 3D</span>
+        <span class="engine-pill">Circuit Bent</span>
+        <span class="engine-pill">Harmonic Web</span>
+        <span class="engine-pill">Video FX</span>
+      </div>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="#download" class="glow bg-brand-700 hover:bg-brand-600 text-white font-bold px-8 py-4 rounded-xl text-lg transition-all hover:scale-105 w-full sm:w-auto">
+          Download Free
+        </a>
+        <a href="#donate" class="text-gray-400 hover:text-white text-sm font-medium transition-colors">
+          Support the project ☕
+        </a>
+      </div>
+      <p class="text-gray-600 text-sm mt-4">No account. No license key. Just download and run.</p>
+    </div>
+  </section>
+
+  <!-- Synth UI preview (CSS art) -->
+  <section class="py-16 px-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
+        <!-- Title bar -->
+        <div class="bg-gray-800 px-4 py-3 flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full bg-red-500"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500"></div>
+          <div class="flex-1 text-center text-xs text-gray-400 font-medium">Video Life — Kaleidoscope · BPM 128 · Link ●</div>
+        </div>
+        <!-- App layout -->
+        <div class="flex h-80">
+          <!-- Left: controls panel -->
+          <div class="w-48 bg-gray-950 border-r border-gray-800 p-4 flex flex-col gap-4 shrink-0">
+            <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Engine</div>
+            <div class="space-y-1">
+              <div class="text-xs px-2 py-1.5 rounded bg-brand-900/50 text-brand-400 font-medium">Kaleidoscope</div>
+              <div class="text-xs px-2 py-1.5 text-gray-600">Lissajous</div>
+              <div class="text-xs px-2 py-1.5 text-gray-600">Plasma</div>
+              <div class="text-xs px-2 py-1.5 text-gray-600">Feedback</div>
+              <div class="text-xs px-2 py-1.5 text-gray-600">Waveform 3D</div>
+            </div>
+            <div class="border-t border-gray-800 pt-3">
+              <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Audio</div>
+              <!-- Mini level bar -->
+              <div class="flex gap-0.5 items-end h-6">
+                <div class="w-1.5 rounded-t bg-brand-500" style="height:45%"></div>
+                <div class="w-1.5 rounded-t bg-brand-500" style="height:70%"></div>
+                <div class="w-1.5 rounded-t bg-brand-400" style="height:90%"></div>
+                <div class="w-1.5 rounded-t bg-brand-500" style="height:60%"></div>
+                <div class="w-1.5 rounded-t bg-brand-500" style="height:35%"></div>
+                <div class="w-1.5 rounded-t bg-brand-600" style="height:20%"></div>
+                <div class="w-1.5 rounded-t bg-brand-600" style="height:12%"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Right: GL canvas preview (simulated) -->
+          <div class="flex-1 relative overflow-hidden bg-black">
+            <!-- Kaleidoscope simulation with CSS gradients -->
+            <div class="absolute inset-0" style="background: conic-gradient(from 0deg at 50% 50%, #7c3aed22, #06b6d422, #a855f722, #7c3aed44, #22d3ee22, #7c3aed22); animation: spin 8s linear infinite;"></div>
+            <div class="absolute inset-0" style="background: conic-gradient(from 45deg at 50% 50%, #c084fc11, #22d3ee22, #7c3aed33, #c084fc11); animation: spin 5s linear infinite reverse;"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-48 h-48 rounded-full border border-purple-500/30 flex items-center justify-center" style="background: radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)">
+                <div class="w-32 h-32 rounded-full border border-cyan-400/20" style="background: radial-gradient(circle, rgba(34,211,238,0.2) 0%, transparent 70%)">
+                  <div class="w-full h-full flex items-center justify-center">
+                    <div class="w-4 h-4 rounded-full bg-purple-400 pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Scan line effect -->
+            <div class="absolute inset-y-0 w-8 opacity-10 scanline" style="background: linear-gradient(90deg, transparent, white, transparent)"></div>
+            <!-- Overlay info -->
+            <div class="absolute bottom-3 left-3 flex gap-2">
+              <span class="text-xs bg-black/60 text-brand-400 px-2 py-0.5 rounded font-mono">128 BPM</span>
+              <span class="text-xs bg-black/60 text-cyan-400 px-2 py-0.5 rounded font-mono">● REC</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="text-center text-gray-600 text-sm mt-4">The full GPU output goes to a second screen or projector · Press <kbd class="bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-xs">F</kbd> for fullscreen</p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-20 px-6">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-3xl font-bold text-white text-center mb-4">Everything in one app</h2>
+      <p class="text-gray-400 text-center mb-14 max-w-xl mx-auto">No plugins, no subscriptions, no internet required. Everything runs locally on your GPU.</p>
+
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-gray-900 border border-gray-800 hover:border-brand-800 transition-colors rounded-xl p-6">
+          <div class="text-2xl mb-3">🎨</div>
+          <h3 class="text-white font-semibold mb-2">9 GLSL Synthesis Engines</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Lissajous, Plasma, Ramp Colorizer, Feedback, Kaleidoscope, Waveform 3D, Circuit Bent, Harmonic Web, and Video FX — all running live on your GPU at full resolution.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 hover:border-brand-800 transition-colors rounded-xl p-6">
+          <div class="text-2xl mb-3">🎵</div>
+          <h3 class="text-white font-semibold mb-2">Audio Reactive</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Live microphone or line input drives every visual parameter in real time. Bass, mid, and treble bands independently modulate any knob — or use audio file playback.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 hover:border-brand-800 transition-colors rounded-xl p-6">
+          <div class="text-2xl mb-3">🎹</div>
+          <h3 class="text-white font-semibold mb-2">MIDI + Ableton Link</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Full MIDI CC learn on every parameter. Ableton Link syncs beat phase with Live, Traktor, GarageBand, and any Link-enabled app on the same network — no cables needed.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 hover:border-brand-800 transition-colors rounded-xl p-6">
+          <div class="text-2xl mb-3">📷</div>
+          <h3 class="text-white font-semibold mb-2">Live Camera Input</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Feed any camera into the synthesis pipeline — built-in webcam, iPhone via Continuity Camera, USB camera, or RTSP stream. Process it through any of the 9 engines.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 hover:border-brand-800 transition-colors rounded-xl p-6">
+          <div class="text-2xl mb-3">⏺️</div>
+          <h3 class="text-white font-semibold mb-2">Record to MP4</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">One click to start recording direct to MP4 at full quality. Built-in clip editor with trim and export — no screen capture tools needed.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 hover:border-brand-800 transition-colors rounded-xl p-6">
+          <div class="text-2xl mb-3">🖥️</div>
+          <h3 class="text-white font-semibold mb-2">Dual Screen Output</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Controls stay on your main screen while a dedicated fullscreen output window goes to your projector or second display. Press <strong class="text-gray-300">F</strong> to toggle fullscreen, <strong class="text-gray-300">Esc</strong> to exit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download -->
+  <section id="download" class="py-20 px-6 bg-gray-900/50">
+    <div class="max-w-4xl mx-auto text-center">
+      <h2 class="text-3xl font-bold text-white mb-3">Download</h2>
+      <p id="release-label" class="text-gray-400 mb-2">Free download — no account required</p>
+      <p class="text-gray-600 text-sm mb-12">Requires a GPU with OpenGL 3.3+ — any hardware made after ~2012.</p>
+
+      <div class="grid sm:grid-cols-3 gap-5 mb-10">
+
+        <!-- macOS -->
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🍎</span>
+            <div class="text-left">
+              <div class="text-white font-semibold">macOS</div>
+              <div class="text-xs text-gray-500">macOS 12+ · Apple Silicon &amp; Intel</div>
+            </div>
+          </div>
+          <a id="dl-mac" href="#" data-suffix="mac.zip"
+            class="dl-btn block w-full text-center bg-brand-700 hover:bg-brand-600 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-all hover:scale-105"
+            data-loading>
+            Loading…
+          </a>
+          <p class="text-xs text-gray-600 text-left leading-relaxed">After downloading: right-click → Open on first launch to bypass Gatekeeper.</p>
+        </div>
+
+        <!-- Windows -->
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🪟</span>
+            <div class="text-left">
+              <div class="text-white font-semibold">Windows</div>
+              <div class="text-xs text-gray-500">Windows 10/11 · 64-bit</div>
+            </div>
+          </div>
+          <a id="dl-windows" href="#" data-suffix="windows.zip"
+            class="dl-btn block w-full text-center bg-brand-700 hover:bg-brand-600 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-all hover:scale-105"
+            data-loading>
+            Loading…
+          </a>
+          <p class="text-xs text-gray-600 text-left leading-relaxed">Extract the zip, then run <span class="code text-gray-400 text-xs">Video Life.exe</span></p>
+        </div>
+
+        <!-- Linux -->
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🐧</span>
+            <div class="text-left">
+              <div class="text-white font-semibold">Linux</div>
+              <div class="text-xs text-gray-500">Ubuntu 22.04+ · x86_64</div>
+            </div>
+          </div>
+          <a id="dl-linux" href="#" data-suffix="linux.tar.gz"
+            class="dl-btn block w-full text-center bg-brand-700 hover:bg-brand-600 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-all hover:scale-105"
+            data-loading>
+            Loading…
+          </a>
+          <p class="text-xs text-gray-600 text-left leading-relaxed">Extract and run <span class="code text-gray-400 text-xs">./Video Life</span> · Needs OpenGL 3.3+</p>
+        </div>
+
+      </div>
+
+      <p class="text-gray-600 text-sm">
+        All releases and changelogs →
+        <a id="releases-link" href="https://github.com/YOUR_USERNAME/video-life/releases" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:text-brand-300 underline underline-offset-2">
+          GitHub Releases
+        </a>
+      </p>
+    </div>
+  </section>
+
+  <!-- About / Story -->
+  <section class="py-20 px-6">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl font-bold text-white mb-4">Built for live performance</h2>
+      <p class="text-gray-400 text-lg leading-relaxed max-w-2xl mx-auto">
+        Video Life was built as a standalone digital video synthesizer modelled on iconic hardware instruments — something you can play live, improvise with, and push through a projector.
+        No subscriptions, no cloud, no latency. Just your GPU generating visuals in real time.
+      </p>
+    </div>
+  </section>
+
+  <!-- Donate -->
+  <section id="donate" class="py-20 px-6 bg-gray-900/50">
+    <div class="max-w-lg mx-auto text-center">
+      <h2 class="text-3xl font-bold text-white mb-3">Support the project</h2>
+      <p class="text-gray-400 mb-10">Video Life is free, open source, and always will be. If it sparks something in your performances or installations, a coffee keeps the synthesizer running.</p>
+
+      <div class="bg-gray-900 border border-brand-800 rounded-2xl p-8 glow">
+        <div class="text-5xl mb-4">☕</div>
+        <div class="text-brand-400 text-sm font-semibold mb-2">Buy me a coffee</div>
+        <div class="text-gray-300 text-sm mb-6 leading-relaxed">
+          Any amount is appreciated and goes directly toward new engines, features, and keeping the project alive.
+        </div>
+
+        <ul class="text-left space-y-3 mb-8">
+          <li class="flex items-center gap-3 text-sm text-gray-300"><span class="text-brand-400">✓</span> 100% optional — download is always free</li>
+          <li class="flex items-center gap-3 text-sm text-gray-300"><span class="text-brand-400">✓</span> Supports continued development of new engines</li>
+          <li class="flex items-center gap-3 text-sm text-gray-300"><span class="text-brand-400">✓</span> Helps with macOS notarization &amp; Windows signing costs</li>
+        </ul>
+
+        <a
+          href="https://ko-fi.com/YOUR_KOFI_USERNAME"
+          target="_blank" rel="noopener noreferrer"
+          class="flex items-center justify-center gap-2 w-full bg-[#ff5e5b] hover:bg-[#e54d4a] text-white font-bold py-4 px-6 rounded-xl text-base transition-all hover:scale-105"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 2.694.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/>
+          </svg>
+          Buy me a coffee on Ko-fi
+        </a>
+        <p class="text-gray-600 text-xs mt-4">Secure payment via Ko-fi. No account needed.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="py-20 px-6">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="text-3xl font-bold text-white text-center mb-12">FAQ</h2>
+      <div class="space-y-6">
+        <div class="border-b border-gray-800 pb-6">
+          <h3 class="text-white font-semibold mb-2">What GPU do I need?</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Any GPU with OpenGL 3.3+ support — which covers essentially all hardware made after 2012. Integrated graphics works fine; a discrete GPU gives smoother performance at high resolutions.</p>
+        </div>
+        <div class="border-b border-gray-800 pb-6">
+          <h3 class="text-white font-semibold mb-2">Does it work on Apple Silicon (M1/M2/M3/M4)?</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Yes. The macOS build is a universal binary that runs natively on Apple Silicon and Intel. Ableton Link, iPhone Continuity Camera, and all 9 engines are fully supported.</p>
+        </div>
+        <div class="border-b border-gray-800 pb-6">
+          <h3 class="text-white font-semibold mb-2">macOS says the app is from an unidentified developer — what do I do?</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Right-click (or Control-click) the app icon and choose <strong class="text-gray-300">Open</strong> on first launch. You'll get a dialog that lets you proceed. After that it opens normally. This is a one-time step required for unsigned apps distributed outside the App Store.</p>
+        </div>
+        <div class="border-b border-gray-800 pb-6">
+          <h3 class="text-white font-semibold mb-2">Does it need an internet connection?</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">No. Everything runs locally — synthesis, audio analysis, MIDI, recording. Ableton Link uses local WiFi/LAN but doesn't need internet access.</p>
+        </div>
+        <div class="border-b border-gray-800 pb-6">
+          <h3 class="text-white font-semibold mb-2">Can I use it for live shows and installations?</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Yes, absolutely — that's what it's built for. It's free for personal, commercial, and performance use. No attribution required.</p>
+        </div>
+        <div>
+          <h3 class="text-white font-semibold mb-2">Is the source code available?</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Yes — it's fully open source on <a id="faq-gh-link" href="https://github.com/YOUR_USERNAME/video-life" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:text-brand-300 underline underline-offset-2">GitHub</a>. Pull requests welcome.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer CTA -->
+  <section class="gradient-bg py-20 px-6 text-center">
+    <div class="max-w-xl mx-auto">
+      <h2 class="text-3xl font-bold text-white mb-4">Start synthesizing.</h2>
+      <p class="text-gray-400 mb-8">Free. Open source. No account. Just download and play.</p>
+      <a href="#download" class="inline-block glow bg-brand-700 hover:bg-brand-600 text-white font-bold px-8 py-4 rounded-xl text-lg transition-all hover:scale-105">
+        Download Free
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-800 py-8 px-6">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
+      <div class="flex items-center gap-2">
+        <svg width="20" height="20" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <circle cx="14" cy="14" r="13" stroke="#7c3aed" stroke-width="1.5"/>
+          <ellipse cx="14" cy="14" rx="8" ry="13" stroke="#a855f7" stroke-width="1"/>
+          <ellipse cx="14" cy="14" rx="13" ry="6" stroke="#22d3ee" stroke-width="1"/>
+        </svg>
+        <span>Video Life · Free &amp; open source</span>
+      </div>
+      <a id="footer-gh-link" href="https://github.com/YOUR_USERNAME/video-life" target="_blank" rel="noopener noreferrer"
+        class="flex items-center gap-1.5 text-gray-500 hover:text-white transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        View on GitHub
+      </a>
+    </div>
+  </footer>
+
+  <script>
+    // ── Config — update these after pushing to GitHub ─────────────────────────
+    const GITHUB_REPO  = 'YOUR_USERNAME/video-life';   // e.g. 'nickkuceli/video-life'
+    const KOFI_USER    = 'YOUR_KOFI_USERNAME';          // e.g. 'nickkuceli'
+
+    // ── Patch Ko-fi link ──────────────────────────────────────────────────────
+    document.querySelectorAll('a[href*="YOUR_KOFI_USERNAME"]').forEach(a => {
+      a.href = `https://ko-fi.com/${KOFI_USER}`;
+    });
+
+    // ── Patch GitHub links ────────────────────────────────────────────────────
+    const ghBase = `https://github.com/${GITHUB_REPO}`;
+    document.getElementById('releases-link').href  = `${ghBase}/releases`;
+    document.getElementById('faq-gh-link').href    = ghBase;
+    document.getElementById('footer-gh-link').href = ghBase;
+
+    // ── Fetch latest GitHub Release and populate download buttons ─────────────
+    const dlMac     = document.getElementById('dl-mac');
+    const dlWindows = document.getElementById('dl-windows');
+    const dlLinux   = document.getElementById('dl-linux');
+    const label     = document.getElementById('release-label');
+
+    function setButton(el, url, version) {
+      el.href = url;
+      el.textContent = `Download ${version}`;
+      el.removeAttribute('data-loading');
+    }
+
+    function setFallback(el, platform) {
+      el.href = `${ghBase}/releases`;
+      el.textContent = `View releases`;
+      el.removeAttribute('data-loading');
+      el.target = '_blank';
+      el.rel = 'noopener noreferrer';
+    }
+
+    fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || !data.assets || data.assets.length === 0) {
+          // No release yet — link to releases page
+          setFallback(dlMac, 'mac');
+          setFallback(dlWindows, 'windows');
+          setFallback(dlLinux, 'linux');
+          label.textContent = 'Free download — no account required';
+          return;
+        }
+
+        const version = data.tag_name;
+        label.innerHTML = `Latest release: <span class="text-purple-400 font-mono">${version}</span>`;
+
+        const find = (suffix) => data.assets.find(a =>
+          a.name.toLowerCase().includes(suffix)
+        )?.browser_download_url;
+
+        const macUrl  = find('mac.zip');
+        const winUrl  = find('windows.zip');
+        const linUrl  = find('linux.tar.gz');
+
+        macUrl  ? setButton(dlMac, macUrl, version)         : setFallback(dlMac, 'mac');
+        winUrl  ? setButton(dlWindows, winUrl, version)     : setFallback(dlWindows, 'windows');
+        linUrl  ? setButton(dlLinux, linUrl, version)       : setFallback(dlLinux, 'linux');
+      })
+      .catch(() => {
+        setFallback(dlMac, 'mac');
+        setFallback(dlWindows, 'windows');
+        setFallback(dlLinux, 'linux');
+      });
+
+    // ── Spin animation for the synth preview ─────────────────────────────────
+    const style = document.createElement('style');
+    style.textContent = `@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+    document.head.appendChild(style);
+  </script>
+
+</body>
 </html>
