@@ -1,0 +1,10 @@
+# macOS-only additions (install after requirements.txt)
+-r requirements.txt
+pyobjc-core>=10
+pyobjc-framework-AVFoundation>=10
+pyobjc-framework-Cocoa>=10
+pyobjc-framework-CoreAudio>=10
+pyobjc-framework-CoreMedia>=10
+pyobjc-framework-Quartz>=10
+# Ableton Link (ABI-specific .so — must use Python 3.12 venv, see run.sh)
+# abletonlink   <- install manually: pip install abletonlink
