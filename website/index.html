@@ -133,14 +133,17 @@
       text-align: center;
       border-bottom: 1px solid var(--border);
       overflow: hidden;
+      background-image: url('assets/screenshot_20260515_010126.jpg');
+      background-size: cover;
+      background-position: center;
     }
 
-    /* Radial red glow behind hero text */
+    /* Dark overlay so text remains legible over the screenshot */
     #hero::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(255,32,32,0.07) 0%, transparent 70%);
+      background: rgba(10,0,0,0.82);
       pointer-events: none;
     }
 
@@ -282,36 +285,6 @@
       overflow: hidden;
     }
 
-    .app-canvas-inner {
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 60% 60% at 30% 40%, rgba(255,20,20,0.22) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 50% at 70% 60%, rgba(180,0,0,0.18) 0%, transparent 60%),
-        radial-gradient(ellipse 80% 80% at 50% 50%, rgba(60,0,0,0.5) 0%, transparent 80%);
-      animation: breathe 4s ease-in-out infinite alternate;
-    }
-
-    @keyframes breathe {
-      from { opacity: .7; }
-      to   { opacity: 1; }
-    }
-
-    /* Lissajous-style overlay lines */
-    .app-canvas-inner::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 28px,
-          rgba(255,32,32,0.06) 28px,
-          rgba(255,32,32,0.06) 29px
-        );
-    }
-
     .app-canvas-overlay {
       position: absolute;
       bottom: 8px;
@@ -436,6 +409,81 @@
       font-size: 11px;
       color: var(--text-dim);
       line-height: 1.7;
+    }
+
+    /* ── Gallery ───────────────────────────────────────────────── */
+    #gallery {
+      padding: 64px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .gallery-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .gallery-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .gallery-item {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 1 / 1;
+      background: #000;
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .4s ease, opacity .3s ease;
+      opacity: .85;
+    }
+
+    .gallery-item:hover img {
+      transform: scale(1.04);
+      opacity: 1;
+    }
+
+    .gallery-item-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 6px 10px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      background: rgba(10,0,0,0.75);
+      text-transform: uppercase;
+      border-top: 1px solid rgba(255,32,32,0.2);
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+
+    .gallery-item:hover .gallery-item-label {
+      opacity: 1;
+    }
+
+    @media (max-width: 600px) {
+      .gallery-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     /* ── Download ──────────────────────────────────────────────── */
@@ -764,9 +812,11 @@
           <div class="app-engine-row">HARMONIC WEB</div>
           <div class="app-engine-row">VIDEO FX</div>
         </div>
-        <!-- Centre: GL canvas -->
+        <!-- Centre: GL canvas — real output screenshot -->
         <div class="app-canvas">
-          <div class="app-canvas-inner"></div>
+          <img src="assets/screenshot_20260524_141329.jpg"
+               alt="Video Life output — Video FX engine"
+               style="width:100%;height:100%;object-fit:cover;display:block;opacity:.9;" />
           <div class="app-canvas-overlay">
             <span class="app-badge">BPM 128</span>
             <span class="app-badge">● REC</span>
@@ -845,6 +895,40 @@
         <span class="feature-icon">// OUTPUT</span>
         <div class="feature-title">Dual Screen Output</div>
         <p class="feature-desc">Controls on your main screen, fullscreen GPU output to a projector or second display. Press F to toggle fullscreen, Esc to exit.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery -->
+  <section id="gallery">
+    <div class="gallery-header">
+      <div class="section-label">OUTPUT</div>
+      <h2 class="gallery-title">REAL SYNTHESIZER OUTPUT</h2>
+    </div>
+    <div class="gallery-grid">
+      <div class="gallery-item">
+        <img src="assets/screenshot_20260515_010126.jpg" alt="Circuit Bent engine output" loading="lazy" />
+        <div class="gallery-item-label">CIRCUIT BENT</div>
+      </div>
+      <div class="gallery-item">
+        <img src="assets/screenshot_20260524_141329.jpg" alt="Video FX engine output" loading="lazy" />
+        <div class="gallery-item-label">VIDEO FX</div>
+      </div>
+      <div class="gallery-item">
+        <img src="assets/screenshot_20260517_221008.jpg" alt="Ramp Colorizer engine output" loading="lazy" />
+        <div class="gallery-item-label">RAMP COLORIZER</div>
+      </div>
+      <div class="gallery-item">
+        <img src="assets/screenshot_20260524_141300.jpg" alt="Feedback engine output" loading="lazy" />
+        <div class="gallery-item-label">FEEDBACK</div>
+      </div>
+      <div class="gallery-item">
+        <img src="assets/screenshot_20260524_141312.jpg" alt="Plasma engine output" loading="lazy" />
+        <div class="gallery-item-label">PLASMA</div>
+      </div>
+      <div class="gallery-item">
+        <img src="assets/screenshot_20260514_161515.jpg" alt="Harmonic Web engine output" loading="lazy" />
+        <div class="gallery-item-label">HARMONIC WEB</div>
       </div>
     </div>
   </section>
