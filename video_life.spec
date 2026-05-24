@@ -92,7 +92,7 @@ a = Analysis(
     datas=datas,
     hiddenimports=hidden_imports,
     hookspath=[],
-    hooksconfig={},
+    hooksconfig={'PyQt6': {'qml': False}},
     runtime_hooks=[],
     excludes=excludes,
     win_no_prefer_redirects=False,
@@ -100,13 +100,6 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-
-# Collect all PyQt6 plugins (platform plugins, imageformats, multimedia)
-from PyInstaller.utils.hooks import collect_all
-qt_datas, qt_binaries, qt_hiddenimports = collect_all('PyQt6')
-a.datas    += qt_datas
-a.binaries += qt_binaries
-a.hiddenimports += qt_hiddenimports
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
