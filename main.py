@@ -805,7 +805,7 @@ class MainWindow(QMainWindow):
         logo.setStyleSheet(f"font-size:15px;font-weight:700;color:{ACCENT};letter-spacing:4px;font-family:'Menlo','Monaco','SF Mono';")
         tb_l.addWidget(logo)
 
-        sub = QLabel('VIDEO SYNTHESIZER / LIFE')
+        sub = QLabel('VIDEO SYNTHESIZER')
         sub.setStyleSheet(f'font-size:10px;color:{TEXT_DIM};letter-spacing:2px;margin-left:10px;')
         tb_l.addWidget(sub)
         tb_l.addStretch()
