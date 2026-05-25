@@ -50,7 +50,7 @@ from PyQt6.QtGui   import (
 from canvas       import ScanCanvas
 from core.audio_engine import AudioEngine
 from core.midi_engine  import MidiEngine
-from shaders      import SHADERS, PARAM_NAMES, PARAM_DEFAULTS
+from scan_shaders  import SHADERS, PARAM_NAMES, PARAM_DEFAULTS
 
 # ── Colour tokens (same family as Video Life) ─────────────────────────────────
 BG       = '#0a0000'

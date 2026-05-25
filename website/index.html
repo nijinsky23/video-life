@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VIDEO LIFE — Video Synthesizer</title>
-  <meta name="description" content="Free, open-source real-time GPU video synthesizer. 9 GLSL synthesis engines, audio & MIDI reactive, Ableton Link sync. Download for macOS, Windows, and Linux." />
+  <meta name="description" content="Free, open-source real-time GPU video synthesizer. 9 GLSL synthesis engines + TIAMAT Synth Studio + FUGUE multi-source compositor. Audio & MIDI reactive, Ableton Link sync. Download for macOS, Windows, and Linux." />
   <meta property="og:title" content="VIDEO LIFE — Video Synthesizer" />
-  <meta property="og:description" content="9 GLSL synthesis engines. Audio & MIDI reactive. Ableton Link. Free & open source." />
+  <meta property="og:description" content="9 GLSL engines + TIAMAT Studio + FUGUE compositor. Audio & MIDI reactive. Ableton Link. Free & open source." />
   <meta property="og:type" content="website" />
   <meta name="theme-color" content="#FF2020" />
   <style>
@@ -22,6 +22,14 @@
       --accent:    #FF2020;
       --accent2:   #CC0000;
       --mono:      'Menlo', 'Monaco', 'SF Mono', 'Courier New', monospace;
+
+      
+      
+      
+      
+      
+      
+      
     }
 
     /* ── Reset / base ──────────────────────────────────────────── */
@@ -49,6 +57,8 @@
       text-transform: uppercase;
       margin-bottom: 6px;
     }
+
+    .section-label.int { color: var(--accent); }
 
     .panel-box {
       background: var(--panel);
@@ -83,6 +93,15 @@
     }
     .btn-accent:hover {
       background: rgba(255,32,32,0.1);
+    }
+    .btn-int {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-int:hover {
+      background: rgba(255,32,32,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     /* Scanline overlay on hero */
@@ -125,6 +144,26 @@
       letter-spacing: 2px;
       margin-left: 12px;
     }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-link {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      transition: color .15s;
+    }
+    .nav-link:hover { color: var(--text); }
+    .nav-link.int-link { color: var(--accent); opacity: .7; }
+    .nav-link.int-link:hover { opacity: 1; }
+    .nav-link.fugue-link { color: #FFA020; opacity: .7; }
+    .nav-link.fugue-link:hover { opacity: 1; }
 
     /* ── Hero ──────────────────────────────────────────────────── */
     #hero {
@@ -187,7 +226,7 @@
       flex-wrap: wrap;
       justify-content: center;
       gap: 6px;
-      max-width: 600px;
+      max-width: 680px;
       margin: 0 auto;
     }
 
@@ -199,6 +238,18 @@
       color: var(--text-dim);
       border: 1px solid var(--border);
       padding: 3px 8px;
+    }
+
+    .eng.int {
+      color: var(--accent);
+      border-color: var(--border);
+      background: rgba(255,32,32,0.06);
+    }
+
+    .eng.fugue {
+      color: #FFA020;
+      border-color: rgba(255,160,32,0.25);
+      background: rgba(255,160,32,0.06);
     }
 
     /* ── App preview ───────────────────────────────────────────── */
@@ -277,6 +328,11 @@
       padding-left: 8px;
     }
 
+    .app-engine-row.int-row {
+      color: var(--accent);
+      opacity: .6;
+    }
+
     /* Centre — GL canvas (simulated with CSS) */
     .app-canvas {
       flex: 1;
@@ -328,9 +384,6 @@
       margin-bottom: 8px;
       display: block;
     }
-
-    /* Simulated dial as a small arc SVG */
-    .dial-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
 
     /* Audio meter */
     .meter-bars {
@@ -411,6 +464,488 @@
       line-height: 1.7;
     }
 
+    /* ── FUGUE compositor section ─────────────────────────────── */
+    #fugue {
+      background: #060400;
+      border-top: 1px solid rgba(255,160,32,0.12);
+      border-bottom: 1px solid rgba(255,160,32,0.12);
+      padding: 80px 24px;
+    }
+
+    .fugue-inner {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .fugue-kicker {
+      font-size: 9px;
+      font-weight: 700;
+      color: #FFA020;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .fugue-title {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 700;
+      color: #FFA020;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .fugue-subtitle {
+      font-size: 11px;
+      color: rgba(255,160,32,0.5);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .fugue-desc {
+      font-size: 13px;
+      color: rgba(212,192,160,0.7);
+      max-width: 640px;
+      line-height: 1.9;
+      margin-bottom: 28px;
+    }
+
+    .fugue-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+
+    .fugue-pill {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,160,32,0.45);
+      border: 1px solid rgba(255,160,32,0.18);
+      padding: 3px 8px;
+    }
+
+    .btn-fugue {
+      display: inline-block;
+      border: 1px solid #FFA020;
+      color: #FFA020;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 10px 24px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+
+    .btn-fugue:hover {
+      background: rgba(255,160,32,0.10);
+    }
+
+    /* Fugue mock-UI — mimics the amber broadcast monitor look */
+    .fugue-ui {
+      background: #080600;
+      border: 1px solid rgba(255,160,32,0.2);
+      margin-bottom: 40px;
+    }
+
+    .fugue-ui-bar {
+      background: #100c00;
+      border-bottom: 1px solid rgba(255,160,32,0.15);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .fugue-ui-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFA020;
+      letter-spacing: 5px;
+    }
+
+    .fugue-ui-sub {
+      font-size: 9px;
+      color: rgba(255,160,32,0.3);
+      letter-spacing: 2px;
+      margin-left: 12px;
+    }
+
+    .fugue-tracks {
+      padding: 10px 14px;
+    }
+
+    .fugue-track {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255,160,32,0.08);
+      font-size: 9px;
+    }
+
+    .fugue-track:last-child { border-bottom: none; }
+
+    .fugue-track-letter {
+      font-size: 12px;
+      font-weight: 700;
+      color: #FFA020;
+      width: 14px;
+      flex-shrink: 0;
+    }
+
+    .fugue-track-name {
+      color: rgba(212,192,160,0.5);
+      flex: 1;
+      font-size: 9px;
+      letter-spacing: .5px;
+    }
+
+    .fugue-track-bar {
+      height: 3px;
+      width: 80px;
+      background: #1a1000;
+      border-radius: 1px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .fugue-track-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: #FFA020;
+      border-radius: 1px;
+    }
+
+    .fugue-track-mode {
+      font-size: 8px;
+      color: rgba(255,160,32,0.4);
+      width: 64px;
+      letter-spacing: .5px;
+    }
+
+    .fugue-panel-row {
+      display: flex;
+      gap: 1px;
+      padding: 8px 14px;
+      border-top: 1px solid rgba(255,160,32,0.1);
+      background: #100c00;
+    }
+
+    .fugue-panel-chip {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: rgba(255,160,32,0.6);
+      border: 1px solid rgba(255,160,32,0.2);
+      padding: 3px 8px;
+      margin-right: 6px;
+    }
+
+    .fugue-panel-chip.on {
+      background: #FFA020;
+      color: #080600;
+      border-color: #FFA020;
+    }
+
+    /* Fugue feature cards */
+    .fugue-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1px;
+      background: rgba(255,160,32,0.12);
+      border: 1px solid rgba(255,160,32,0.12);
+      margin-bottom: 40px;
+    }
+
+    .fugue-card {
+      background: #080600;
+      padding: 20px;
+      transition: background .15s;
+    }
+
+    .fugue-card:hover { background: #100c00; }
+
+    .fugue-card-icon {
+      font-size: 9px;
+      font-weight: 700;
+      color: #FFA020;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .fugue-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(212,192,160,0.9);
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .fugue-card-desc {
+      font-size: 11px;
+      color: rgba(255,160,32,0.4);
+      line-height: 1.7;
+    }
+
+    /* Fugue workflow */
+    .fugue-workflow {
+      background: #100c00;
+      border: 1px solid rgba(255,160,32,0.15);
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .fugue-workflow-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #FFA020;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .fugue-flow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .fugue-flow-step {
+      background: #080600;
+      border: 1px solid rgba(255,160,32,0.2);
+      color: #FFA020;
+      padding: 8px 14px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .fugue-flow-arrow {
+      color: rgba(255,160,32,0.3);
+      padding: 0 8px;
+      font-size: 14px;
+    }
+
+    /* ── TIAMAT Synth Studio section ───────────────────────────── */
+    #tiamat {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
+    }
+
+    .int-inner {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .int-header {
+      margin-bottom: 56px;
+    }
+
+    .int-kicker {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .int-title {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .int-subtitle {
+      font-size: 11px;
+      color: var(--accent2);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .int-desc {
+      font-size: 13px;
+      color: rgba(212,170,170,0.7);
+      max-width: 640px;
+      line-height: 1.9;
+      margin-bottom: 28px;
+    }
+
+    .int-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+
+    .int-pill {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+    }
+
+    /* Gallery grid for Studio output shots */
+    .int-gallery {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+
+    @media (min-width: 700px) {
+      .int-gallery { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .int-gallery-item {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      background: #000;
+    }
+
+    .int-gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .4s ease, opacity .3s ease;
+      opacity: .8;
+    }
+
+    .int-gallery-item:hover img {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+
+    .int-gallery-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 5px 8px;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      background: rgba(11,8,20,0.82);
+      text-transform: uppercase;
+      border-top: 1px solid var(--border);
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .int-gallery-item:hover .int-gallery-label { opacity: 1; }
+
+    /* Feature cards in the TIAMAT section */
+    .int-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+
+    .int-card {
+      background: var(--panel);
+      padding: 20px;
+      transition: background .15s;
+    }
+
+    .int-card:hover { background: var(--panel2); }
+
+    .int-card-icon {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .int-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .int-card-desc {
+      font-size: 11px;
+      color: rgba(92,42,42,0.9);
+      color: var(--accent2);
+      line-height: 1.7;
+    }
+
+    /* Workflow diagram */
+    .int-workflow {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .int-workflow-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .int-flow {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .int-flow-step {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 8px 14px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .int-flow-arrow {
+      color: rgba(255,32,32,0.3);
+      padding: 0 8px;
+      font-size: 14px;
+    }
+
     /* ── Gallery ───────────────────────────────────────────────── */
     #gallery {
       padding: 64px 24px;
@@ -480,6 +1015,12 @@
 
     .gallery-item:hover .gallery-item-label {
       opacity: 1;
+    }
+
+    .gallery-item.int-item .gallery-item-label {
+      color: var(--accent);
+      background: rgba(11,8,20,0.82);
+      border-top-color: var(--border);
     }
 
     @media (max-width: 600px) {
@@ -742,9 +1283,12 @@
     @media (max-width: 600px) {
       .app-left, .app-right { display: none; }
       .nav-sub { display: none; }
+      .nav-link { display: none; }
       .features-grid { grid-template-columns: 1fr; }
       .download-grid { grid-template-columns: 1fr; }
       footer { flex-direction: column; text-align: center; }
+      .int-flow { flex-direction: column; align-items: flex-start; }
+      .int-flow-arrow { transform: rotate(90deg); }
     }
   </style>
 </head>
@@ -756,7 +1300,12 @@
       <span class="nav-logo">VIDEO LIFE</span>
       <span class="nav-sub">VIDEO SYNTHESIZER</span>
     </div>
-    <a href="#download" class="btn btn-accent">DOWNLOAD FREE</a>
+    <div class="nav-links">
+      <a href="#tiamat" class="nav-link int-link">TIAMAT STUDIO</a>
+      <a href="#fugue" class="nav-link fugue-link">FUGUE</a>
+      <a href="#gallery" class="nav-link">GALLERY</a>
+      <a href="#download" class="btn btn-accent" style="padding:6px 16px;font-size:10px;">DOWNLOAD FREE</a>
+    </div>
   </nav>
 
   <!-- Hero -->
@@ -769,10 +1318,14 @@
       <p class="hero-desc">
         Real-time GPU video synthesizer. 9 GLSL synthesis engines,
         audio &amp; MIDI reactive, Ableton Link beat sync, live camera input,
-        direct MP4 recording. Built for live performance and installation art.
+        direct MP4 recording — plus <strong style="color:var(--accent);">TIAMAT Synth Studio</strong>
+        for deep camera processing and <strong style="color:#FFA020;">FUGUE</strong>
+        for live multi-source video compositing.
       </p>
       <div class="hero-ctas">
         <a href="#download" class="btn btn-accent">↓ DOWNLOAD FREE</a>
+        <a href="#tiamat" class="btn btn-int">TIAMAT STUDIO ↓</a>
+        <a href="#fugue" class="btn btn-fugue">FUGUE ↓</a>
         <a href="#donate" class="btn">SUPPORT THE PROJECT</a>
       </div>
       <div class="engines">
@@ -785,6 +1338,8 @@
         <span class="eng">CIRCUIT BENT</span>
         <span class="eng">HARMONIC WEB</span>
         <span class="eng">VIDEO FX</span>
+        <span class="eng int">TIAMAT ★</span>
+        <span class="eng fugue">FUGUE ★</span>
       </div>
     </div>
   </section>
@@ -802,20 +1357,21 @@
       <div class="app-body">
         <!-- Left: engine selector -->
         <div class="app-left">
-          <div class="app-engine-row active">KALEIDOSCOPE</div>
+          <div class="app-engine-row">KALEIDOSCOPE</div>
           <div class="app-engine-row">LISSAJOUS</div>
           <div class="app-engine-row">PLASMA</div>
           <div class="app-engine-row">FEEDBACK</div>
           <div class="app-engine-row">WAVEFORM 3D</div>
-          <div class="app-engine-row">RAMP COLORIZER</div>
+          <div class="app-engine-row active">RAMP COLORIZER</div>
           <div class="app-engine-row">CIRCUIT BENT</div>
           <div class="app-engine-row">HARMONIC WEB</div>
           <div class="app-engine-row">VIDEO FX</div>
+          <div class="app-engine-row int-row">TIAMAT</div>
         </div>
-        <!-- Centre: GL canvas — real output screenshot -->
+        <!-- Centre: GL canvas — real synthesizer output screenshot -->
         <div class="app-canvas">
-          <img src="assets/screenshot_20260524_141329.jpg"
-               alt="Video Life output — Video FX engine"
+          <img src="assets/screenshot_20260517_221008.jpg"
+               alt="Video Life — Ramp Colorizer engine output"
                style="width:100%;height:100%;object-fit:cover;display:block;opacity:.9;" />
           <div class="app-canvas-overlay">
             <span class="app-badge">BPM 128</span>
@@ -826,29 +1382,29 @@
         <!-- Right: params -->
         <div class="app-right">
           <div>
-            <span class="app-param-label">SYMMETRY</span>
-            <span class="app-param-val">0.62</span>
-          </div>
-          <div>
             <span class="app-param-label">SPEED</span>
-            <span class="app-param-val">0.40</span>
-          </div>
-          <div>
-            <span class="app-param-label">ZOOM</span>
-            <span class="app-param-val">0.78</span>
+            <span class="app-param-val">0.48</span>
           </div>
           <div>
             <span class="app-param-label">HUE SHIFT</span>
-            <span class="app-param-val">0.20</span>
+            <span class="app-param-val">0.32</span>
+          </div>
+          <div>
+            <span class="app-param-label">CONTRAST</span>
+            <span class="app-param-val">0.71</span>
+          </div>
+          <div>
+            <span class="app-param-label">SATURATION</span>
+            <span class="app-param-val">0.85</span>
           </div>
           <div>
             <span class="app-param-label">AUDIO RMS</span>
             <div class="meter-bars">
-              <div class="meter-bar" style="height:8px;"></div>
-              <div class="meter-bar" style="height:14px;"></div>
-              <div class="meter-bar hi" style="height:18px;"></div>
-              <div class="meter-bar" style="height:12px;"></div>
-              <div class="meter-bar" style="height:7px;"></div>
+              <div class="meter-bar" style="height:8px;background:var(--accent);opacity:.4;"></div>
+              <div class="meter-bar" style="height:14px;background:var(--accent);opacity:.6;"></div>
+              <div class="meter-bar" style="height:18px;background:var(--accent);"></div>
+              <div class="meter-bar" style="height:12px;background:var(--accent);opacity:.6;"></div>
+              <div class="meter-bar" style="height:7px;background:var(--accent);opacity:.4;"></div>
             </div>
           </div>
         </div>
@@ -869,7 +1425,7 @@
       <div class="feature-card">
         <span class="feature-icon">// ENGINE</span>
         <div class="feature-title">9 GLSL Synthesis Engines</div>
-        <p class="feature-desc">Lissajous, Plasma, Ramp Colorizer, Feedback, Kaleidoscope, Waveform 3D, Circuit Bent, Harmonic Web, Video FX — all running live on your GPU at full resolution.</p>
+        <p class="feature-desc">Lissajous, Plasma, Ramp Colorizer, Feedback, Kaleidoscope, Waveform 3D, Circuit Bent, Harmonic Web, Video FX — all live on your GPU. TIAMAT Synth Studio adds deep camera processing on top.</p>
       </div>
       <div class="feature-card">
         <span class="feature-icon">// AUDIO</span>
@@ -896,6 +1452,274 @@
         <div class="feature-title">Dual Screen Output</div>
         <p class="feature-desc">Controls on your main screen, fullscreen GPU output to a projector or second display. Press F to toggle fullscreen, Esc to exit.</p>
       </div>
+      <div class="feature-card" style="border-left:2px solid rgba(255,160,32,0.3);">
+        <span class="feature-icon" style="color:#FFA020;">// TIAMAT</span>
+        <div class="feature-title">TIAMAT Synth Studio</div>
+        <p class="feature-desc">Companion app for deep camera processing. Flow warp, scan warp, magnetic warp, feedback loop, glitch modes, full colour pipeline, LFO modulation, and preset transfer to Video Life.</p>
+      </div>
+      <div class="feature-card" style="border-left:2px solid rgba(255,160,32,0.3);">
+        <span class="feature-icon" style="color:#FFA020;">// FUGUE</span>
+        <div class="feature-title">FUGUE Compositor</div>
+        <p class="feature-desc">Standalone multi-source video compositor. Load up to four clips, blend with 7 GPU modes, luma/chroma key, and difference key — a PhotoBooth-style background subtraction inspired by 80s/90s broadcast gear.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ FUGUE COMPOSITOR ══════════════════════ -->
+  <section id="fugue">
+    <div class="fugue-inner">
+
+      <!-- Header -->
+      <div class="int-header">
+        <div class="fugue-kicker">STANDALONE COMPANION APP · INCLUDED FREE</div>
+        <h2 class="fugue-title">FUGUE</h2>
+        <p class="fugue-subtitle">MULTI-SOURCE VIDEO COMPOSITOR</p>
+        <p class="fugue-desc">
+          FUGUE loads up to four video clips simultaneously and composites them live on the GPU.
+          Seven blend modes, luma keying, chroma keying, and a difference key —
+          a PhotoBooth-style background subtraction inspired by Quantel, Grass Valley,
+          and the Video Toaster of the late 1980s. Deliberately crude at the edges.
+          Deliberately analog in character.
+        </p>
+        <div class="fugue-pills">
+          <span class="fugue-pill">4 VIDEO TRACKS</span>
+          <span class="fugue-pill">7 GPU BLEND MODES</span>
+          <span class="fugue-pill">LUMA KEY — DARKS &amp; BRIGHTS</span>
+          <span class="fugue-pill">CHROMA KEY</span>
+          <span class="fugue-pill">DIFFERENCE KEY</span>
+          <span class="fugue-pill">BG SUBTRACTION</span>
+          <span class="fugue-pill">PER-TRACK MIX</span>
+          <span class="fugue-pill">GAIN · SAT · CONTRAST</span>
+          <span class="fugue-pill">CRT SCANLINES</span>
+          <span class="fugue-pill">ANALOG EDGE NOISE</span>
+          <span class="fugue-pill">VARIABLE SPEED</span>
+          <span class="fugue-pill">LOOP + SCRUB</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="#download" class="btn-fugue">↓ INCLUDED IN DOWNLOAD</a>
+        </div>
+      </div>
+
+      <!-- Mock UI -->
+      <div class="section-label" style="color:#FFA020;margin-bottom:16px;">INTERFACE — BROADCAST MONITOR PALETTE</div>
+      <div class="fugue-ui">
+        <div class="fugue-ui-bar">
+          <span class="fugue-ui-title">FUGUE</span>
+          <span class="fugue-ui-sub">multi-source compositor</span>
+          <span style="margin-left:auto;font-size:9px;color:rgba(255,160,32,0.4);letter-spacing:1px;">57 fps</span>
+        </div>
+        <div class="fugue-tracks">
+          <div class="fugue-track">
+            <span class="fugue-track-letter">A</span>
+            <span class="fugue-track-name">subject_clip.mp4</span>
+            <div class="fugue-track-bar"><div class="fugue-track-fill" style="width:100%;"></div></div>
+            <span class="fugue-track-mode">MIX  1.00</span>
+          </div>
+          <div class="fugue-track">
+            <span class="fugue-track-letter">B</span>
+            <span class="fugue-track-name">background_loop.mp4</span>
+            <div class="fugue-track-bar"><div class="fugue-track-fill" style="width:75%;"></div></div>
+            <span class="fugue-track-mode">SCREEN  0.75</span>
+          </div>
+          <div class="fugue-track">
+            <span class="fugue-track-letter">C</span>
+            <span class="fugue-track-name">texture_overlay.mp4</span>
+            <div class="fugue-track-bar"><div class="fugue-track-fill" style="width:30%;"></div></div>
+            <span class="fugue-track-mode">ADD  0.30</span>
+          </div>
+          <div class="fugue-track">
+            <span class="fugue-track-letter">D</span>
+            <span class="fugue-track-name">— empty —</span>
+            <div class="fugue-track-bar"></div>
+            <span class="fugue-track-mode">OFF</span>
+          </div>
+        </div>
+        <div class="fugue-panel-row">
+          <span style="font-size:9px;font-weight:700;color:#FFA020;letter-spacing:2px;margin-right:14px;">DIFF KEY</span>
+          <span class="fugue-panel-chip">subj A</span>
+          <span class="fugue-panel-chip">bgnd B</span>
+          <span class="fugue-panel-chip">thresh 0.120</span>
+          <span class="fugue-panel-chip">soft 0.050</span>
+          <span class="fugue-panel-chip">blur 2.0</span>
+          <span class="fugue-panel-chip on">ON</span>
+        </div>
+        <div class="fugue-panel-row" style="border-top:none;">
+          <span style="font-size:9px;font-weight:700;color:rgba(255,160,32,0.4);letter-spacing:2px;margin-right:14px;">OUT</span>
+          <span class="fugue-panel-chip">gain 0.60</span>
+          <span class="fugue-panel-chip">sat 1.00</span>
+          <span class="fugue-panel-chip">contr 1.00</span>
+          <span class="fugue-panel-chip">lines 0.00</span>
+        </div>
+      </div>
+
+      <!-- Feature cards -->
+      <div class="section-label" style="color:#FFA020;margin-bottom:16px;">COMPOSITOR FEATURES</div>
+      <div class="fugue-features">
+        <div class="fugue-card">
+          <span class="fugue-card-icon">// BLEND</span>
+          <div class="fugue-card-title">7 GPU Blend Modes</div>
+          <p class="fugue-card-desc">Mix, Add, Screen, Multiply, Difference, Hard Light — serial compositing A→B→C→D with per-track mix level. Same pipeline as professional broadcast compositors, running live in GLSL.</p>
+        </div>
+        <div class="fugue-card">
+          <span class="fugue-card-icon">// DIFF KEY</span>
+          <div class="fugue-card-title">Difference Key</div>
+          <p class="fugue-card-desc">Hit GRAB PLATE to snapshot the background, then the shader subtracts it live. Subject pixels pass through; matching background pixels are replaced by another clip. Analog edge noise on the boundary — authentic keyer artifact.</p>
+        </div>
+        <div class="fugue-card">
+          <span class="fugue-card-icon">// KEY</span>
+          <div class="fugue-card-title">Luma + Chroma Key</div>
+          <p class="fugue-card-desc">Key out darks, brights, or a specific colour on any track. Smoothstep threshold with adjustable softness. Analog boundary noise simulates the low-bandwidth vertical interval of hardware keyers.</p>
+        </div>
+        <div class="fugue-card">
+          <span class="fugue-card-icon">// OUTPUT</span>
+          <div class="fugue-card-title">Output Processing</div>
+          <p class="fugue-card-desc">Gain, saturation, contrast, and CRT scanline overlay applied to the final composite. Gain maps 0–1 to 0.2×–2.0× — intentional headroom for overdriven, bloomed-out broadcast aesthetics.</p>
+        </div>
+        <div class="fugue-card">
+          <span class="fugue-card-icon">// TRANSPORT</span>
+          <div class="fugue-card-title">Per-Track Transport</div>
+          <p class="fugue-card-desc">Each track has independent play/pause, scrub bar, time display, speed (0.25×–4×), and loop toggle. OpenCV decodes any MP4, MOV, AVI, or MKV in a background thread — no dropped frames in the GL loop.</p>
+        </div>
+        <div class="fugue-card">
+          <span class="fugue-card-icon">// AESTHETIC</span>
+          <div class="fugue-card-title">Analog Character</div>
+          <p class="fugue-card-desc">Inspired by the Panasonic WJ series, Grass Valley switchers, and the NewTek Video Toaster. Deliberately imperfect key edges, hash-noise boundary jitter, and a warm amber broadcast-monitor UI palette.</p>
+        </div>
+      </div>
+
+      <!-- Workflow -->
+      <div class="section-label" style="color:#FFA020;margin-bottom:12px;">WORKFLOW</div>
+      <div class="fugue-workflow">
+        <div class="fugue-workflow-label">DIFFERENCE KEY — ISOLATE SUBJECT OVER REPLACEMENT BACKGROUND</div>
+        <div class="fugue-flow">
+          <span class="fugue-flow-step">LOAD CLIPS</span>
+          <span class="fugue-flow-arrow">→</span>
+          <span class="fugue-flow-step">PAUSE ON EMPTY BG</span>
+          <span class="fugue-flow-arrow">→</span>
+          <span class="fugue-flow-step">GRAB PLATE</span>
+          <span class="fugue-flow-arrow">→</span>
+          <span class="fugue-flow-step">RESUME PLAY</span>
+          <span class="fugue-flow-arrow">→</span>
+          <span class="fugue-flow-step">ENABLE DIFF KEY</span>
+          <span class="fugue-flow-arrow">→</span>
+          <span class="fugue-flow-step">TUNE THRESHOLD</span>
+          <span class="fugue-flow-arrow">→</span>
+          <span class="fugue-flow-step">LIVE OUTPUT</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════════════ TIAMAT SYNTH STUDIO ══════════════════ -->
+  <section id="tiamat">
+    <div class="int-inner">
+
+      <!-- Header -->
+      <div class="int-header">
+        <div class="int-kicker">COMPANION APP · INCLUDED FREE</div>
+        <h2 class="int-title">TIAMAT</h2>
+        <p class="int-subtitle">SYNTH STUDIO</p>
+        <p class="int-desc">
+          TIAMAT is a dedicated preset design studio for the VIDEO LIFE camera engine.
+          Build complex multi-stage effects — warp, feedback, glitch, chroma, palette —
+          with a full parameter panel and real-time camera preview. Save presets that load
+          directly into VIDEO LIFE with identical output.
+        </p>
+        <div class="int-pills">
+          <span class="int-pill">FLOW WARP</span>
+          <span class="int-pill">SCAN WARP</span>
+          <span class="int-pill">MAGNETIC WARP</span>
+          <span class="int-pill">FEEDBACK LOOP</span>
+          <span class="int-pill">BURN · BLEND · STREAK</span>
+          <span class="int-pill">GLITCH MODES ×3</span>
+          <span class="int-pill">CHROMA ABERRATION</span>
+          <span class="int-pill">CUSTOM PALETTE ×4</span>
+          <span class="int-pill">LFO MODULATION</span>
+          <span class="int-pill">AUDIO REACTIVE</span>
+          <span class="int-pill">MIDI CC LEARN</span>
+          <span class="int-pill">BEAT PUNCH</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="#download" class="btn btn-int">↓ INCLUDED IN DOWNLOAD</a>
+        </div>
+      </div>
+
+      <!-- Output gallery -->
+      <div class="section-label int" style="margin-bottom:16px;">STUDIO OUTPUT — LIVE CAMERA</div>
+      <div class="int-gallery">
+        <div class="int-gallery-item">
+          <img src="assets/intercept_20260524_230627.jpg" alt="TIAMAT output — mirror warp with chroma" loading="lazy" />
+          <div class="int-gallery-label">WARP · MIRROR · CHROMA</div>
+        </div>
+        <div class="int-gallery-item">
+          <img src="assets/intercept_20260524_230905.jpg" alt="TIAMAT output — feedback burn" loading="lazy" />
+          <div class="int-gallery-label">FEEDBACK BURN</div>
+        </div>
+        <div class="int-gallery-item">
+          <img src="assets/intercept_20260524_230645.jpg" alt="TIAMAT output — glitch solarize inverted" loading="lazy" />
+          <div class="int-gallery-label">GLITCH · SOLARIZE</div>
+        </div>
+        <div class="int-gallery-item">
+          <img src="assets/intercept_20260524_230701.jpg" alt="TIAMAT output — flow warp inverted palette" loading="lazy" />
+          <div class="int-gallery-label">FLOW WARP · PALETTE INV</div>
+        </div>
+      </div>
+
+      <!-- Feature cards -->
+      <div class="section-label int" style="margin-bottom:16px;">STUDIO FEATURES</div>
+      <div class="int-features">
+        <div class="int-card">
+          <span class="int-card-icon">// WARP</span>
+          <div class="int-card-title">3 Warp Modes</div>
+          <p class="int-card-desc">SCAN displaces scan lines. MAGNETIC pulls with three animated attractors. FLOW wraps the image in flowing turbulence. Twist dial adds radial rotation to any mode.</p>
+        </div>
+        <div class="int-card">
+          <span class="int-card-icon">// FEEDBACK</span>
+          <div class="int-card-title">Temporal Feedback Loop</div>
+          <p class="int-card-desc">Ping-pong FBO feeds the previous rendered frame back into the current one. Four modes: Blend, Displace, Burn, Streak. Zoom and rotate the feedback independently.</p>
+        </div>
+        <div class="int-card">
+          <span class="int-card-icon">// GLITCH</span>
+          <div class="int-card-title">3 Glitch Modes</div>
+          <p class="int-card-desc">CORRUPT shifts scan-line blocks and inverts random zones. BURN solarizes channels with chroma-tinted thresholds. STATIC replaces regions with coloured noise.</p>
+        </div>
+        <div class="int-card">
+          <span class="int-card-icon">// COLOR</span>
+          <div class="int-card-title">Full Color Pipeline</div>
+          <p class="int-card-desc">Hue rotation, saturation, contrast, posterize, per-channel RGB gain, invert, and a 4-stop custom palette — all applied after feedback and glitch for maximum control.</p>
+        </div>
+        <div class="int-card">
+          <span class="int-card-icon">// LFO</span>
+          <div class="int-card-title">LFO Modulation</div>
+          <p class="int-card-desc">A sine LFO with rate and depth targets any of four parameters: Warp, Feedback, Glitch, or Chroma. Depth at zero = fully static output for precise preset comparison.</p>
+        </div>
+        <div class="int-card">
+          <span class="int-card-icon">// PRESET</span>
+          <div class="int-card-title">Preset Transfer</div>
+          <p class="int-card-desc">Presets saved in TIAMAT Studio load in VIDEO LIFE with identical output — same shader, same named uniforms, FBOs cleared on load, clocks reset for frame-accurate sync.</p>
+        </div>
+      </div>
+
+      <!-- Workflow -->
+      <div class="section-label int" style="margin-bottom:12px;">WORKFLOW</div>
+      <div class="int-workflow">
+        <div class="int-workflow-label">DESIGN IN STUDIO → PERFORM IN VIDEO LIFE</div>
+        <div class="int-flow">
+          <span class="int-flow-step">CAMERA INPUT</span>
+          <span class="int-flow-arrow">→</span>
+          <span class="int-flow-step">TIAMAT STUDIO</span>
+          <span class="int-flow-arrow">→</span>
+          <span class="int-flow-step">DESIGN PRESET</span>
+          <span class="int-flow-arrow">→</span>
+          <span class="int-flow-step">SAVE .JSON</span>
+          <span class="int-flow-arrow">→</span>
+          <span class="int-flow-step">VIDEO LIFE</span>
+          <span class="int-flow-arrow">→</span>
+          <span class="int-flow-step">LIVE OUTPUT</span>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -903,9 +1727,10 @@
   <section id="gallery">
     <div class="gallery-header">
       <div class="section-label">OUTPUT</div>
-      <h2 class="gallery-title">REAL SYNTHESIZER OUTPUT</h2>
+      <h2 class="gallery-title">SYNTHESIZER OUTPUT</h2>
     </div>
     <div class="gallery-grid">
+      <!-- VIDEO LIFE engines -->
       <div class="gallery-item">
         <img src="assets/screenshot_20260515_010126.jpg" alt="Circuit Bent engine output" loading="lazy" />
         <div class="gallery-item-label">CIRCUIT BENT</div>
@@ -918,6 +1743,20 @@
         <img src="assets/screenshot_20260517_221008.jpg" alt="Ramp Colorizer engine output" loading="lazy" />
         <div class="gallery-item-label">RAMP COLORIZER</div>
       </div>
+      <!-- TIAMAT Studio outputs -->
+      <div class="gallery-item int-item">
+        <img src="assets/intercept_20260524_230627.jpg" alt="TIAMAT — mirror warp chroma" loading="lazy" />
+        <div class="gallery-item-label">TIAMAT · WARP + MIRROR</div>
+      </div>
+      <div class="gallery-item int-item">
+        <img src="assets/intercept_20260524_230905.jpg" alt="TIAMAT — feedback burn" loading="lazy" />
+        <div class="gallery-item-label">TIAMAT · FEEDBACK BURN</div>
+      </div>
+      <div class="gallery-item int-item">
+        <img src="assets/intercept_20260524_230645.jpg" alt="TIAMAT — glitch solarize" loading="lazy" />
+        <div class="gallery-item-label">TIAMAT · GLITCH</div>
+      </div>
+      <!-- More VIDEO LIFE -->
       <div class="gallery-item">
         <img src="assets/screenshot_20260524_141300.jpg" alt="Feedback engine output" loading="lazy" />
         <div class="gallery-item-label">FEEDBACK</div>
@@ -926,18 +1765,21 @@
         <img src="assets/screenshot_20260524_141312.jpg" alt="Plasma engine output" loading="lazy" />
         <div class="gallery-item-label">PLASMA</div>
       </div>
-      <div class="gallery-item">
-        <img src="assets/screenshot_20260514_161515.jpg" alt="Harmonic Web engine output" loading="lazy" />
-        <div class="gallery-item-label">HARMONIC WEB</div>
+      <div class="gallery-item int-item">
+        <img src="assets/intercept_20260524_230701.jpg" alt="TIAMAT — flow warp palette" loading="lazy" />
+        <div class="gallery-item-label">TIAMAT · FLOW WARP</div>
       </div>
     </div>
+    <p style="font-size:9px;color:var(--text-dim);text-align:center;margin-top:14px;letter-spacing:1px;">
+      <span style="color:var(--accent);">★</span> TIAMAT outputs are live camera processed through TIAMAT Synth Studio
+    </p>
   </section>
 
   <!-- Download -->
   <section id="download">
     <div class="section-label">RELEASE</div>
     <h2 class="download-title">DOWNLOAD</h2>
-    <p id="release-label" class="download-meta">FREE DOWNLOAD — NO ACCOUNT REQUIRED</p>
+    <p id="release-label" class="download-meta">FREE DOWNLOAD — INCLUDES VIDEO LIFE + TIAMAT STUDIO + FUGUE · NO ACCOUNT REQUIRED</p>
 
     <div class="download-grid">
       <!-- macOS -->
@@ -979,9 +1821,9 @@
       <div class="section-label">SUPPORT</div>
       <h2 class="donate-title">BUY ME A COFFEE</h2>
       <p class="donate-desc">
-        Video Life is free and open source, always. If it sparks something
+        Video Life, TIAMAT Studio, and FUGUE are free and open source, always. If they spark something
         in your performances, installations, or experiments, a coffee
-        keeps the synthesizer running.
+        keeps the synthesizers running.
       </p>
       <div class="donate-box">
         <ul style="list-style:none;text-align:left;margin-bottom:24px;">
@@ -1013,12 +1855,20 @@
     <h2 class="faq-title">FAQ</h2>
     <div class="faq-list">
       <div class="faq-item">
+        <div class="faq-q">What is TIAMAT Synth Studio?</div>
+        <p class="faq-a">TIAMAT is a companion preset design app bundled with Video Life. It gives you a dedicated panel for building and saving camera-processing presets with deep parameter control — warp, feedback, glitch, palette, LFO, and more. Presets save as JSON and load directly into Video Life's TIAMAT engine with identical output.</p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What is FUGUE?</div>
+        <p class="faq-a">FUGUE is a standalone multi-source video compositor, also included free. Load up to four video clips and blend them live on the GPU using seven blend modes. It adds luma keying, chroma keying, and a PhotoBooth-style difference key (background subtraction) — grab a clean reference frame, and FUGUE isolates your subject over a replacement background video in real time. Designed with the aesthetic of 80s/90s analog broadcast mixers.</p>
+      </div>
+      <div class="faq-item">
         <div class="faq-q">What GPU do I need?</div>
         <p class="faq-a">Any GPU with OpenGL 3.3+ — which covers essentially all hardware made after 2012. Integrated graphics works fine; a discrete GPU gives smoother performance at high resolutions.</p>
       </div>
       <div class="faq-item">
         <div class="faq-q">Does it work on Apple Silicon (M1/M2/M3/M4)?</div>
-        <p class="faq-a">Yes. The macOS build runs natively on Apple Silicon and Intel. Ableton Link, iPhone Continuity Camera, and all 9 engines are fully supported.</p>
+        <p class="faq-a">Yes. The macOS build runs natively on Apple Silicon and Intel. Ableton Link, iPhone Continuity Camera, TIAMAT Studio, FUGUE, and all engines are fully supported.</p>
       </div>
       <div class="faq-item">
         <div class="faq-q">macOS says the app is from an unidentified developer.</div>
@@ -1026,7 +1876,7 @@
       </div>
       <div class="faq-item">
         <div class="faq-q">Does it need an internet connection?</div>
-        <p class="faq-a">No. Everything runs locally — synthesis, audio analysis, MIDI, recording. Ableton Link uses local WiFi/LAN only.</p>
+        <p class="faq-a">No. Everything runs locally — synthesis, audio analysis, MIDI, recording, TIAMAT Studio, and FUGUE. Ableton Link uses local WiFi/LAN only.</p>
       </div>
       <div class="faq-item">
         <div class="faq-q">Can I use it for live shows and commercial installations?</div>
@@ -1043,26 +1893,28 @@
   <section id="cta">
     <div class="section-label">GET STARTED</div>
     <h2 class="cta-title">START SYNTHESIZING.</h2>
-    <p class="cta-sub">FREE. OPEN SOURCE. NO ACCOUNT. JUST DOWNLOAD AND PLAY.</p>
+    <p class="cta-sub">FREE. OPEN SOURCE. NO ACCOUNT. VIDEO LIFE + TIAMAT + FUGUE.</p>
     <a href="#download" class="btn btn-accent">↓ DOWNLOAD FREE</a>
   </section>
 
   <!-- Footer -->
   <footer>
     <div class="footer-left">
-      VIDEO LIFE &nbsp;/&nbsp; FREE &amp; OPEN SOURCE
+      VIDEO LIFE &nbsp;/&nbsp; TIAMAT &nbsp;/&nbsp; FUGUE &nbsp;/&nbsp; FREE &amp; OPEN SOURCE
     </div>
     <div class="footer-right">
       <a id="footer-gh-link" href="https://github.com/nijinsky23/video-life"
         target="_blank" rel="noopener noreferrer"
         class="footer-link">GITHUB</a>
+      <a href="#tiamat" class="footer-link" style="color:rgba(255,32,32,0.5);">TIAMAT</a>
+      <a href="#fugue" class="footer-link" style="color:rgba(255,160,32,0.5);">FUGUE</a>
       <a href="#download" class="footer-link">DOWNLOAD</a>
       <a href="#donate" class="footer-link">DONATE</a>
     </div>
   </footer>
 
   <script>
-    // ── Config — update after pushing to GitHub ──────────��────────
+    // ── Config — update after pushing to GitHub ───────────────────
     const GITHUB_REPO = 'nijinsky23/video-life';
     const KOFI_USER   = 'YOUR_KOFI_USERNAME';         // e.g. 'nickkuceli'
 
@@ -1104,7 +1956,7 @@
           return;
         }
         const v = data.tag_name;
-        label.textContent = `LATEST RELEASE: ${v}`;
+        label.textContent = `LATEST RELEASE: ${v} — INCLUDES VIDEO LIFE + TIAMAT STUDIO + FUGUE`;
         const find = s => data.assets.find(a => a.name.toLowerCase().includes(s))?.browser_download_url;
         const mac = find('mac.zip'), win = find('windows.zip'), lin = find('linux.tar.gz');
         mac ? activate(dlMac, mac, v)         : fallback(dlMac);

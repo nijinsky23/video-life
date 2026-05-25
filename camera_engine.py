@@ -64,11 +64,11 @@ if _MACOS:
             """
             return ctypes.cast(id(pb_pyobj), ctypes.POINTER(ctypes.c_void_p))[2]
 
-        class _FrameDelegate(NSObject):
+        class _VideoLifeFrameDelegate(NSObject):
             """AVCaptureVideoDataOutputSampleBufferDelegate in Python."""
 
             def initWithCallback_(self, callback):
-                self = objc.super(_FrameDelegate, self).init()
+                self = objc.super(_VideoLifeFrameDelegate, self).init()
                 if self is None:
                     return None
                 self._callback = callback
@@ -240,7 +240,7 @@ class CameraEngine(QObject):
             })
             output.setAlwaysDiscardsLateVideoFrames_(True)
 
-            delegate = _FrameDelegate.alloc().initWithCallback_(self._on_av_frame)
+            delegate = _VideoLifeFrameDelegate.alloc().initWithCallback_(self._on_av_frame)
             output.setSampleBufferDelegate_queue_(delegate, _CAPTURE_QUEUE)
 
             if not session.canAddOutput_(output):

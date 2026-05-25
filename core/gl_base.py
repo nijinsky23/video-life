@@ -455,6 +455,11 @@ class GLBase(QOpenGLWidget):
         self._treble = treble
         self._beat   = beat
 
+    def reset_clock(self):
+        """Reset u_time to 0 — call on preset load so time-based oscillations
+        start from the same phase in both Studio and VIDEO LIFE."""
+        self._start = time.time()
+
     def set_params(self, params: list):
         """Set all 8 synthesis parameters at once."""
         self._params = list(params)[:8]

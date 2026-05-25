@@ -616,6 +616,261 @@ void main() {
 }
 """
 
+# ── Tiamat engine ────────────────────────────────────────────────────────────
+# Exact copy of the Synth Studio shader — identical uniform names and logic —
+# so presets load with pixel-perfect matching output in both apps.
+# Only changes from the Studio _FRAG:
+#   u_video/u_has_video  instead of  u_src0/u_has_src0
+#   u_prev               instead of  u_prev_frame/u_has_prev
+#   cam() flips Y: VIDEO LIFE uploads frames without Y-flip (Studio pre-flips)
+# ALL params sent as named uniforms from _studio_params — p[] not used.
+INTERCEPT = """
+#version 330 core
+
+uniform float u_time;
+uniform vec2  u_resolution;
+uniform float u_rms, u_bass, u_mid, u_treble, u_beat;
+
+uniform sampler2D u_video;
+uniform int       u_has_video;
+uniform sampler2D u_prev;
+
+// Warp
+uniform int   u_warp_mode;
+uniform float u_warp_amt, u_warp_spd, u_warp_freq, u_warp_twist;
+
+// Feedback
+uniform float u_feedback;
+uniform int   u_fb_mode;
+uniform float u_fb_zoom, u_fb_rotate, u_fb_hue_shift;
+
+// Glitch
+uniform int   u_glitch_mode;
+uniform float u_glitch_amt, u_chroma, u_glitch_rate, u_glitch_scale;
+
+// Spatial
+uniform float u_zoom;
+uniform int   u_mirror;
+
+// Palette
+uniform int   u_pal_mode;
+uniform vec3  u_pal_0, u_pal_1, u_pal_2, u_pal_3;
+
+// Color
+uniform float u_hue, u_sat, u_contrast, u_posterize;
+
+// Channels
+uniform float u_rgb_r, u_rgb_g, u_rgb_b, u_invert;
+
+// Edge
+uniform float u_edge_mix, u_edge_hue;
+
+// Texture
+uniform float u_grain, u_rf, u_scanlines;
+
+// LFO
+uniform float u_lfo_rate, u_lfo_depth;
+uniform int   u_lfo_target;
+
+// React / output
+uniform float u_react, u_beat_punch, u_mix, u_gain;
+
+out vec4 fragColor;
+
+float hash1(float n){return fract(sin(n)*43758.5453);}
+float hash2(vec2 v){return fract(sin(dot(v,vec2(127.1,311.7)))*43758.5);}
+vec3  hash3(vec2 v){
+    return fract(sin(vec3(dot(v,vec2(127.1,311.7)),dot(v,vec2(269.5,183.3)),
+                          dot(v,vec2(419.2,371.9))))*43758.5);
+}
+// VIDEO LIFE uploads frames without Y-flip; flip here so orientation matches Studio.
+vec4 cam(vec2 st) {
+    vec2 uv=vec2(st.x, 1.0-st.y);
+    return u_has_video==1?texture(u_video,clamp(uv,0.001,0.999)):vec4(0.12);
+}
+// Prev-frame is a rendered FBO (OpenGL orientation), sample as-is.
+vec4 prv(vec2 st) {return texture(u_prev, clamp(st,0.001,0.999));}
+
+vec3 hue_rot(vec3 c,float h){
+    float Y=dot(c,vec3(0.299,0.587,0.114));
+    float I=dot(c,vec3(0.596,-0.275,-0.321));
+    float Q=dot(c,vec3(0.212,-0.523,0.311));
+    float cs=cos(h);float sn=sin(h);
+    return clamp(vec3(Y+0.956*(cs*I-sn*Q)+0.621*(sn*I+cs*Q),
+                      Y-0.272*(cs*I-sn*Q)-0.647*(sn*I+cs*Q),
+                      Y-1.107*(cs*I-sn*Q)+1.704*(sn*I+cs*Q)),0.0,1.0);
+}
+vec3 custom_pal(vec3 c){
+    float l=dot(c,vec3(0.299,0.587,0.114));
+    if(l<0.333)return mix(u_pal_0,u_pal_1,l/0.333);
+    else if(l<0.667)return mix(u_pal_1,u_pal_2,(l-0.333)/0.334);
+    else return mix(u_pal_2,u_pal_3,(l-0.667)/0.333);
+}
+
+void main(){
+    vec2  st    = gl_FragCoord.xy/u_resolution;
+    float lineY = floor(st.y*u_resolution.y);
+    float t     = u_time;
+
+    // Named uniforms — loaded directly from _studio_params, same as Studio shader
+    float warp_amt = u_warp_amt;
+    float fb_amt   = u_feedback;
+    float glitch_a = u_glitch_amt;
+    float chroma   = u_chroma;
+    float sat      = u_sat;
+    float hue_v    = u_hue;
+    float gain     = u_gain;
+    float react    = u_react;
+
+    float beat  = u_beat*react*u_beat_punch;
+    float audio = u_rms*react;
+
+    float lfo = sin(t*u_lfo_rate*18.8496)*u_lfo_depth;
+    float ew  = clamp(warp_amt +(u_lfo_target==0?lfo*warp_amt :0.0),0.0,2.0);
+    float ef  = clamp(fb_amt   +(u_lfo_target==1?lfo*0.3      :0.0),0.0,0.97);
+    float eg  = clamp(glitch_a +(u_lfo_target==2?lfo*glitch_a :0.0),0.0,2.0);
+    float ec  = clamp(chroma   +(u_lfo_target==3?lfo*chroma   :0.0),0.0,1.0);
+
+    float cam_scale = pow(2.0,u_zoom*2.0-1.0);
+    vec2  wuv = (st-0.5)/cam_scale+0.5;
+    float wfreq = 0.5+u_warp_freq*3.5;
+
+    if(u_warp_mode==1){
+        float spd=u_warp_spd*2.0;
+        float amp=ew*(0.08+audio*0.10);
+        float d=sin(lineY*0.031*wfreq+t*spd*0.7)*amp
+               +sin(lineY*0.073*wfreq+t*spd*1.3)*amp*0.55
+               +sin(lineY*0.19 *wfreq+t*spd*2.1)*amp*0.28
+               +sin(lineY*0.007*wfreq+t*spd*0.2)*amp*1.2;
+        d+=u_bass*react*0.04*sin(lineY*0.05+t*5.0)+beat*0.05*sin(lineY*0.03+t*3.0);
+        float sT=floor(t*1.5*u_warp_spd+hash1(floor(t*0.3))*3.0);
+        float sTp=hash1(sT);float sW=0.04+hash1(sT+0.5)*0.18;
+        d+=(hash1(sT+2.0)-0.5)*ew*0.40*step(sTp,st.y)*step(st.y,sTp+sW);
+        vec2 disp=vec2(d,0.0);
+        if(u_warp_twist>0.005){float ang=(st.x-0.5)*u_warp_twist*6.28318;
+            float ca=cos(ang);float sa=sin(ang);
+            disp=vec2(disp.x*ca-disp.y*sa,disp.x*sa+disp.y*ca);}
+        wuv+=disp;
+    }else if(u_warp_mode==2){
+        float str=ew*(0.25+u_bass*react*0.30+beat*0.15);
+        float asp=u_resolution.x/u_resolution.y;float spd=u_warp_spd;
+        vec2 m0=vec2(0.5+sin(t*0.23*spd)*0.35,0.5+cos(t*0.17*spd)*0.30);
+        vec2 m1=vec2(0.5+sin(t*0.31*spd+2.1)*0.30,0.5+cos(t*0.19*spd+1.1)*0.35);
+        vec2 m2=vec2(0.5+sin(t*0.13*spd+4.2)*0.20,0.5+cos(t*0.29*spd+3.0)*0.22);
+        vec2 d0=st-m0;d0.x*=asp;vec2 d1=st-m1;d1.x*=asp;vec2 d2=st-m2;d2.x*=asp;
+        vec2 warp=(normalize(d0)/(length(d0)+0.001))*str*0.055
+                 -(normalize(d1)/(length(d1)+0.001))*str*0.040
+                 +(normalize(d2)/(length(d2)+0.001))*str*0.025;
+        if(u_warp_twist>0.005){float ang=length(st-0.5)*u_warp_twist*12.566;
+            float ca=cos(ang);float sa=sin(ang);
+            warp=vec2(warp.x*ca-warp.y*sa,warp.x*sa+warp.y*ca);}
+        wuv+=clamp(warp,-0.5,0.5);
+    }else if(u_warp_mode==3){
+        float amp=ew*(0.12+audio*0.10);vec2 q=wuv;float wf=wfreq;
+        q+=0.05*vec2(sin(q.y*3.1*wf+t*u_warp_spd*1.4),cos(q.x*2.9*wf+t*u_warp_spd));
+        q+=0.04*vec2(cos(q.x*5.3*wf-t*u_warp_spd*2.2),sin(q.y*4.7*wf+t*u_warp_spd*1.8));
+        q+=0.03*vec2(sin(q.y*7.1*wf+q.x*2.0+t*u_warp_spd),
+                     cos(q.x*6.3*wf-q.y*1.7+t*u_warp_spd*0.8));
+        if(u_warp_twist>0.005){vec2 cen=q-0.5;float ang=length(cen)*u_warp_twist*8.0;
+            float ca=cos(ang);float sa=sin(ang);
+            q=0.5+vec2(cen.x*ca-cen.y*sa,cen.x*sa+cen.y*ca);}
+        wuv=mix(wuv,q,amp*3.0);
+    }
+
+    if(u_mirror==1||u_mirror==3){if(wuv.x>0.5)wuv.x=1.0-wuv.x;}
+    if(u_mirror==2||u_mirror==3){if(wuv.y>0.5)wuv.y=1.0-wuv.y;}
+
+    float chr=ec*0.025*(1.0+u_treble*react);
+    vec3 col=vec3(cam(fract(wuv+vec2(chr,0.0))).r,
+                  cam(fract(wuv)).g,
+                  cam(fract(wuv-vec2(chr,0.0))).b)*u_mix;
+
+    vec3 edge_col=vec3(0.0);
+    if(u_edge_mix>0.005){
+        float dx=1.5/u_resolution.x;float dy=1.5/u_resolution.y;
+        vec3 n2=cam(wuv+vec2(0,dy)).rgb;vec3 s2=cam(wuv-vec2(0,dy)).rgb;
+        vec3 e2=cam(wuv+vec2(dx,0)).rgb;vec3 w2=cam(wuv-vec2(dx,0)).rgb;
+        float el=length(abs(n2-s2)+abs(e2-w2));
+        edge_col=u_edge_hue>0.005?hue_rot(vec3(el*2.0),u_edge_hue*6.28318):vec3(el*2.0);
+    }
+
+    float gscale=max(2.0,32.0-u_glitch_scale*28.0);
+    if(u_glitch_mode==1){
+        float corr=eg*(1.0+audio*2.0+beat); float bg=floor(st.y*u_resolution.y/gscale);
+        float rs=hash1(bg+floor(t*(3.0+eg*15.0)));float thr=1.0-u_glitch_rate*0.6;
+        float rd=(rs-0.5)*corr*0.18*step(thr,rs);
+        col.r=cam(fract(wuv+vec2(rd+eg*0.030,0.0))).r*u_mix;
+        col.b=cam(fract(wuv-vec2(eg*0.030,0.0))).b*u_mix;
+        float bn=hash2(floor(st*u_resolution)+floor(t*40.0*u_glitch_rate));
+        if(step(1.0-eg*0.22*u_glitch_rate,bn)>0.0)col=1.0-col;
+        if(eg>0.4){vec2 bk=floor(st*u_resolution/max(1.0,gscale));
+            float bh=hash2(bk+floor(t*2.0));
+            if(bh>1.0-eg*0.25*u_glitch_rate)col=hash3(bk+1.3);}
+    }else if(u_glitch_mode==2){
+        float base=1.0-eg*(0.65+audio*0.50);
+        float tR=clamp(base*(1.0+ec*0.22),0.03,0.97);
+        float tG=clamp(base,0.03,0.97);float tB=clamp(base*(1.0-ec*0.18),0.03,0.97);
+        col.r=mix(col.r,1.0-col.r,smoothstep(tR-0.05,tR+0.05,col.r));
+        col.g=mix(col.g,1.0-col.g,smoothstep(tG-0.05,tG+0.05,col.g));
+        col.b=mix(col.b,1.0-col.b,smoothstep(tB-0.05,tB+0.05,col.b));
+        col=mix(col,1.0-col,beat*0.9);
+        float lm=dot(col,vec3(0.299,0.587,0.114));
+        col=mix(col,vec3(1.0),smoothstep(0.5,1.0,lm)*eg*0.8);
+    }else if(u_glitch_mode==3){
+        float str=eg*(0.55+audio*0.50+beat*0.40)*u_glitch_rate;
+        float n=hash2(floor(st*u_resolution)+floor(t*60.0));
+        col=mix(col,hash3(floor(st*180.0)+floor(t*60.0)),str*step(0.4,n));
+    }
+
+    if(ef>0.005){
+        float fbz=0.97+u_fb_zoom*0.06;float fbr=(u_fb_rotate-0.5)*0.08;
+        vec2 fbv=st;vec2 dv=fbv-0.5;
+        float cs=cos(fbr);float sn=sin(fbr);
+        fbv=0.5+vec2(dv.x*cs-dv.y*sn,dv.x*sn+dv.y*cs);
+        fbv=(fbv-0.5)/fbz+0.5;
+        vec3 pv=prv(fbv).rgb;
+        if(u_fb_hue_shift>0.005)pv=hue_rot(pv,u_fb_hue_shift*0.3);
+        if(u_fb_mode==0){col=mix(col,pv,ef);}
+        else if(u_fb_mode==1){vec2 disp=(pv.rg-0.5)*ef*0.55;
+            vec3 pcam=cam(fract(wuv+disp)).rgb*u_mix;
+            col=mix(pcam,prv(fbv+disp*0.5).rgb,ef*0.7)+col*(1.0-ef*0.6);}
+        else if(u_fb_mode==2){vec3 burned=clamp(col*pv*2.5,0.0,1.0);col=mix(col,burned,ef);}
+        else{float angle=t*u_warp_spd*0.5;vec2 dir=vec2(cos(angle),sin(angle))*ef*0.018;
+            col=mix(col,prv(fract(fbv-dir)).rgb,ef*0.85);}
+    }
+
+    if(u_edge_mix>0.005)col=mix(col,col*0.3+edge_col,u_edge_mix);
+
+    if(u_pal_mode==1){col=custom_pal(col);}
+    else if(u_pal_mode==2){float l=dot(col,vec3(0.299,0.587,0.114));col=vec3(l*0.10,l*1.05,l*0.18);}
+    else if(u_pal_mode==3){float l=dot(col,vec3(0.299,0.587,0.114));
+        col=mix(vec3(0.05,0.07,0.55),vec3(1.0,0.22,0.04),l);}
+    else if(u_pal_mode==4){col=1.0-col;}
+
+    if(abs(hue_v)>0.005)col=hue_rot(col,hue_v*3.14159);
+    float lum=dot(col,vec3(0.299,0.587,0.114));
+    col=mix(vec3(lum),col,sat);
+    col=(col-0.5)*u_contrast+0.5;
+    if(u_posterize>0.005){float steps=max(2.0,floor(mix(32.0,2.0,u_posterize)));
+        col=floor(col*steps+0.5)/steps;}
+    col=clamp(col,0.0,1.0);
+
+    col.r*=u_rgb_r*2.0;col.g*=u_rgb_g*2.0;col.b*=u_rgb_b*2.0;
+    if(u_invert>0.005)col=mix(col,1.0-col,u_invert);
+    col=clamp(col,0.0,1.0);
+
+    col+=(hash2(st*u_resolution+t*71.0)-0.5)*u_grain*(0.18+audio*0.12);
+    if(u_rf>0.005){float rfB=sin(st.y*75.0+t*7.0)*0.5+0.5;
+        float rfN=hash2(vec2(st.x*512.0,lineY)+floor(t*60.0));
+        col+=rfB*rfN*u_rf*(0.20+audio*0.20);}
+    if(u_scanlines>0.005){float sl=0.80+0.20*sin(st.y*u_resolution.y*3.14159*2.0);
+        col*=mix(1.0,sl,u_scanlines);}
+
+    col*=mix(0.3,2.2,gain);
+    fragColor=vec4(clamp(col,0.0,1.0),1.0);
+}
+"""
+
 SHADERS = {
     "Lissajous":      LISSAJOUS,
     "Plasma":         PLASMA,
@@ -626,6 +881,7 @@ SHADERS = {
     "Circuit Bent":   CIRCUIT_BENT,
     "Harmonic Web":   HARMONIC_WEB,
     "Video FX":       VIDEO_FX,
+    "Tiamat":         INTERCEPT,
 }
 
 PARAM_NAMES = {
@@ -638,6 +894,7 @@ PARAM_NAMES = {
     "Circuit Bent":   ["Glitch Rate", "Block Size", "RGB Shift", "Scanlines", "Palette", "Noise", "Sync Break", "Beat Flash"],
     "Harmonic Web":   ["Harm 1", "Harm 2", "Harm 3", "Thickness", "Hue", "Saturation", "Travel", "Modulation"],
     "Video FX":       ["Glitch", "RGB Sep", "Warp", "Hue Rotate", "Saturation", "Brightness", "Edge Mix", "Beat Flash"],
+    "Tiamat":         ["Warp", "Feedback", "Glitch", "Chroma", "Sat", "Hue", "Gain", "React"],
 }
 
 PARAM_DEFAULTS = {
@@ -650,4 +907,7 @@ PARAM_DEFAULTS = {
     "Circuit Bent":   [0.3, 0.2, 0.3, 0.5, 0.4, 0.15, 0.6, 0.5],
     "Harmonic Web":   [0.4, 0.5, 0.3, 0.3, 0.4, 0.8, 0.3, 0.5],
     "Video FX":       [0.0, 0.0, 0.0, 0.5, 0.5, 0.6, 0.0, 0.3],
+    "Tiamat":         [0.0, 0.0, 0.0, 0.0, 0.25, 0.5, 0.65, 0.5],
+    #                  warp fb  glt  chr   sat  hue  gain react
+    #                  0=off    0=none     0.25→sat=1  0.5→hue=0
 }

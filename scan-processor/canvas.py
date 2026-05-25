@@ -17,7 +17,7 @@ if _ROOT not in sys.path:
 from OpenGL.GL import *
 
 from core.gl_base import GLBase
-from shaders import SHADERS, VERT
+from scan_shaders import SHADERS, VERT
 
 
 class ScanCanvas(GLBase):

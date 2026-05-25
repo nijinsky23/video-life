@@ -62,7 +62,7 @@ from OpenGL.GL import shaders as _glshaders
 import numpy as np
 
 from gl_canvas     import SynthCanvas
-from audio_engine  import AudioEngine
+from audio_engine  import AudioEngine, FFT_BINS as _FFT_BINS, SAMPLE_RATE as _AUDIO_SR
 from midi_engine   import MidiEngine
 from link_engine   import LinkEngine
 from recorder      import VideoRecorder
@@ -346,37 +346,76 @@ class SynthKnob(QDial):
         p.end()
 
 
-# ── Audio scope mini widget ───────────────────────────────────────────────────
+# ── Spectrum scope — log-frequency display ────────────────────────────────────
+
+# Precompute log-spaced (lo_bin, hi_bin) pairs for each display bar.
+# Covers 30 Hz – 16 kHz over 72 bars; each bar takes the *max* of its bin range
+# so no FFT peak is missed between bars.
+_SCOPE_N_BARS = 72
+_SCOPE_BIN_HZ = _AUDIO_SR / (_FFT_BINS * 2)   # ≈ 43.07 Hz / bin
+
+def _build_scope_edges() -> list[tuple[int, int]]:
+    freqs = np.geomspace(30.0, 16000.0, _SCOPE_N_BARS + 1)
+    bins  = np.clip((freqs / _SCOPE_BIN_HZ).astype(int), 0, _FFT_BINS - 1)
+    edges: list[tuple[int, int]] = []
+    for i in range(_SCOPE_N_BARS):
+        lo = int(bins[i])
+        hi = max(lo + 1, int(bins[i + 1]))
+        edges.append((lo, min(hi, _FFT_BINS)))
+    return edges
+
+_SCOPE_EDGES = _build_scope_edges()
+
 
 class MiniScope(QWidget):
+    """Log-frequency spectrum display with peak-hold per bar."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(50)
-        self._data = [0.0] * 64
-        self._color = QColor(ACCENT)
+        self.setFixedHeight(60)
+        self.setMinimumWidth(120)
+        self._bars = np.zeros(_SCOPE_N_BARS, dtype=np.float32)
+        self._rms  = 0.0
 
-    def update_data(self, fft: list, rms: float):
-        stride = max(1, len(fft) // 64)
-        self._data = [float(fft[i * stride]) for i in range(64)]
+    def update_data(self, fft: np.ndarray, rms: float):
+        """fft: numpy float32 array of shape (FFT_BINS,) with values 0–1."""
+        bars = self._bars
+        for i, (lo, hi) in enumerate(_SCOPE_EDGES):
+            hi = min(hi, len(fft))
+            bars[i] = float(np.max(fft[lo:hi])) if lo < len(fft) else 0.0
+        self._rms = float(rms)
         self.update()
 
     def paintEvent(self, e):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
+        p.fillRect(0, 0, w, h, QColor(BG))
 
-        # Background
-        p.fillRect(0, 0, w, h, QColor(PANEL))
+        bw = w / _SCOPE_N_BARS
+        for i, v in enumerate(self._bars):
+            if v < 0.005:
+                continue
+            bh = max(2, int(v * (h - 2)))
+            # Bass = bright red, mids warm amber, treble stays red but dimmer
+            t  = i / _SCOPE_N_BARS          # 0 = bass, 1 = treble
+            r  = int(min(255, 160 + v * 95))
+            g  = int(min(255, t * 80 * v))
+            b  = int(t * 25 * v)
+            p.fillRect(
+                int(i * bw), h - bh,
+                max(1, int(bw) - 1), bh,
+                QColor(r, g, b),
+            )
 
-        # Bars
-        n = len(self._data)
-        bw = w / n
-        for i, v in enumerate(self._data):
-            bh = int(v * h * 0.9)
-            alpha = int(100 + v * 155)
-            color = QColor(ACCENT)
-            color.setAlpha(alpha)
-            p.fillRect(int(i * bw), h - bh, max(1, int(bw - 1)), bh, color)
+        # Thin RMS level line
+        if self._rms > 0.02:
+            ry = max(1, int((1.0 - min(self._rms, 1.0)) * h))
+            pen = QPen(QColor(ACCENT))
+            pen.setWidth(1)
+            pen.setStyle(Qt.PenStyle.DotLine)
+            p.setPen(pen)
+            p.drawLine(0, ry, w, ry)
 
         p.end()
 
@@ -783,7 +822,7 @@ class MainWindow(QMainWindow):
         self._start_link_poll()
 
         # Default audio: start with silence generator so visuals react on open
-        threading.Thread(target=self.audio.silence, daemon=True).start()
+        self.audio.start_silence()
 
     # ── UI construction ───────────────────────────────────────────────────────
 
@@ -1624,18 +1663,23 @@ class MainWindow(QMainWindow):
         }
         self.mode_desc.setText(descs.get(mode, ''))
 
+    # Modes that consume live video — don't auto-switch away from these
+    _VIDEO_MODES = {'Video FX', 'Tiamat'}
+
     def _on_video_active(self):
-        """Switch to Video FX mode when the first video frame arrives."""
+        """Switch to Video FX on first frame, but only if not already in a video mode."""
         try:
-            self.mode_combo.setCurrentText('Video FX')
+            if self._mode not in self._VIDEO_MODES:
+                self.mode_combo.setCurrentText('Video FX')
         except Exception as e:
             print(f'[video active] mode switch error: {e}')
 
     def _relay_video_frame(self, arr):
-        """Route VideoEditor frames to the canvas, guaranteeing Video FX mode."""
+        """Route camera / video-editor frames to the canvas.
+        Only switch to Video FX if the current mode doesn't use video at all."""
         try:
             self.canvas.set_video_frame(arr)
-            if self._mode != 'Video FX':
+            if self._mode not in self._VIDEO_MODES:
                 self.mode_combo.setCurrentText('Video FX')
         except Exception as e:
             print(f'[relay] video frame error: {e}')
@@ -1643,7 +1687,8 @@ class MainWindow(QMainWindow):
     def _on_video_playback_state(self, state):
         from PyQt6.QtMultimedia import QMediaPlayer
         if state == QMediaPlayer.PlaybackState.PlayingState:
-            self.mode_combo.setCurrentText('Video FX')
+            if self._mode not in self._VIDEO_MODES:
+                self.mode_combo.setCurrentText('Video FX')
 
     def _on_blend_layer_change(self, idx: int):
         if self.canvas is None:
@@ -1681,6 +1726,8 @@ class MainWindow(QMainWindow):
             self.src_file_btn.setChecked(True)
             self.file_row.show()
             self.audio.stop()
+            # Keep visuals alive until a file is browsed
+            self.audio.start_silence()
 
     def _detect_virtual_audio(self):
         _VIRTUAL_KEYWORDS = ('blackhole', 'soundflower', 'loopback',
@@ -2073,7 +2120,12 @@ class MainWindow(QMainWindow):
         try:
             with open(path) as f:
                 data = json.load(f)
-            self.mode_combo.setCurrentText(data.get('mode', self._mode))
+            # Any preset with _studio_params is a Tiamat preset → always
+            # load as Tiamat regardless of what mode field says (old saves
+            # were written with mode="Video FX" before the engine was renamed).
+            has_studio = '_studio_params' in data
+            mode = 'Tiamat' if has_studio else data.get('mode', self._mode)
+            self.mode_combo.setCurrentText(mode)
             params = data.get('params', [0.5] * 8)
             for i, v in enumerate(params[:8]):
                 self.param_panel.set_param_from_midi(i, v)
@@ -2082,6 +2134,13 @@ class MainWindow(QMainWindow):
             self.canvas.set_params(self._params)
             cc_map = data.get('cc_map', {})
             self.midi._learn_map = {int(k): v for k, v in cc_map.items()}
+            # Tiamat engine: restore full Studio style params, clear
+            # feedback FBOs, and reset clock so both apps start from the
+            # same clean state with time-based oscillations in phase.
+            if has_studio:
+                self.canvas.set_intercept_params(data['_studio_params'])
+                self.canvas.clear_feedback_fbos()
+                self.canvas.reset_clock()
             self.status_lbl.setText(f'Preset loaded: {Path(path).name}')
         except Exception as e:
             self.status_lbl.setText(f'Preset error: {e}')
@@ -2111,7 +2170,7 @@ class MainWindow(QMainWindow):
 
         try:
             self.canvas.set_audio_data(fft, rms, bass, mid, treble, beat)
-            self.scope.update_data(fft.tolist(), rms)
+            self.scope.update_data(fft, rms)
 
             # blockSignals prevents valueChanged from reaching any connected Python slots
             for widget, val in [

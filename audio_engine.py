@@ -19,9 +19,16 @@ except Exception:
     SCIPY_OK = False
 
 
-FFT_BINS   = 512
-BLOCK_SIZE = 1024
+FFT_BINS    = 512
+BLOCK_SIZE  = 1024
 SAMPLE_RATE = 44100
+# Hz per FFT bin: rfft uses n=FFT_BINS*2 points → 44100/1024 ≈ 43 Hz/bin
+BIN_HZ      = SAMPLE_RATE / (FFT_BINS * 2)
+
+# Band split points — computed once from real Hz, not magic fractions of FFT_BINS.
+# BIN_HZ ≈ 43 Hz  →  bass 0–250 Hz ≈ bins 0-5, treble from 4 kHz ≈ bin 93+
+_B1 = max(1,       round(250.0  / BIN_HZ))   # bass / mid   split
+_B2 = max(_B1 + 1, round(4000.0 / BIN_HZ))   # mid  / treble split
 
 
 class AudioEngine:
@@ -51,6 +58,10 @@ class AudioEngine:
         self._rms_smooth = 0.0
         self._prev_rms   = 0.0
         self._onset_thresh = 0.05
+        # Adaptive FFT normalisation reference — rises fast, decays ~1.8%/block
+        # so the spectrum reflects actual loudness (quiet = short bars, loud = tall)
+        # rather than always peak-normalising to full scale.
+        self._peak_ref   = 1e-4
 
         self.input_gain    = 1.0
         self.input_devices = self._list_devices()
@@ -302,7 +313,7 @@ class AudioEngine:
         rms = float(np.sqrt(np.mean(mono ** 2)))
 
         # Beat / onset detection (simple energy delta)
-        beat = 0.0
+        beat  = 0.0
         delta = rms - self._prev_rms
         if delta > self._onset_thresh:
             beat = min(delta * 8.0, 1.0)
@@ -311,18 +322,30 @@ class AudioEngine:
         # FFT
         windowed = mono * np.hanning(len(mono))
         fft_raw  = np.abs(np.fft.rfft(windowed, n=FFT_BINS * 2))[:FFT_BINS]
-        fft_norm = np.clip(fft_raw / (np.max(fft_raw) + 1e-6) * (1.0 + rms * 2.0), 0, 1).astype(np.float32)
 
-        # Smooth FFT
-        alpha = 0.3
-        self._fft_smooth = alpha * fft_norm + (1 - alpha) * self._fft_smooth
+        # Adaptive normalisation reference: rises fast (0.7 weight on current peak),
+        # decays at ~1.8 %/block so quiet passages actually show short bars and
+        # silence decays to near-zero rather than always peak-normalising noise to 1.
+        raw_peak       = float(np.max(fft_raw))
+        self._peak_ref = max(raw_peak * 0.7 + self._peak_ref * 0.3,
+                             self._peak_ref * 0.982)
+        self._peak_ref = max(self._peak_ref, 1e-4)
+        fft_norm = np.clip(fft_raw / self._peak_ref, 0.0, 1.0).astype(np.float32)
 
-        # Band energies
-        b1 = int(FFT_BINS * 0.04)   # bass: 0 – 4%
-        b2 = int(FFT_BINS * 0.20)   # mid:  4 – 20%
-        bass   = float(np.mean(self._fft_smooth[:b1]) * 2.5)
-        mid    = float(np.mean(self._fft_smooth[b1:b2]) * 2.0)
-        treble = float(np.mean(self._fft_smooth[b2:]) * 3.0)
+        # Asymmetric smoothing: fast attack / slow release (peak-hold feel).
+        # With adaptive normalisation, fft_norm is near-zero during silence so
+        # the release path actually fires — the spectrum goes dark when quiet.
+        grow = fft_norm > self._fft_smooth
+        self._fft_smooth = np.where(
+            grow,
+            0.55 * fft_norm + 0.45 * self._fft_smooth,   # attack  ≈ 2 blocks
+            0.08 * fft_norm + 0.92 * self._fft_smooth,   # release ≈ 15 blocks
+        )
+
+        # Band energies from module-level constants (not recalculated every call)
+        bass   = float(np.mean(self._fft_smooth[:_B1]) * 4.0)
+        mid    = float(np.mean(self._fft_smooth[_B1:_B2]) * 2.5)
+        treble = float(np.mean(self._fft_smooth[_B2:]) * 2.0)
 
         # Beat decay
         self._beat_decay = max(self._beat_decay * 0.85 + beat, beat)
@@ -354,13 +377,26 @@ class AudioEngine:
                 pass
             self._stream = None
 
-    def silence(self):
-        """Feed a quiet tone on startup so visuals aren't dead before audio connects."""
+    def start_silence(self):
+        """Start the silence generator, tracked in _file_thread so stop_file()
+        can join it before starting live input or file playback.  This prevents
+        the race where an untracked silence thread keeps calling _process() in
+        parallel with a newly started file worker."""
+        self.stop_file()           # joins any previous file/silence thread
         self._stop_file.clear()
-        t = 0.0
+        self._file_thread = threading.Thread(
+            target=self._silence_worker, daemon=True)
+        self._file_thread.start()
+
+    def _silence_worker(self):
+        """Feed zeros so audio state decays to rest — no false meter activity.
+        Shaders still animate via u_time; they just don't react to audio."""
+        block_dur = BLOCK_SIZE / SAMPLE_RATE   # ≈ 23.2 ms
+        silence   = np.zeros(BLOCK_SIZE, dtype=np.float32)
         while not self._stop_file.is_set():
-            t += BLOCK_SIZE / SAMPLE_RATE
-            dummy = np.sin(2 * np.pi * 220 * np.linspace(t, t + BLOCK_SIZE / SAMPLE_RATE, BLOCK_SIZE))
-            dummy *= 0.1
-            self._process(dummy.astype(np.float32))
-            time.sleep(0.02)
+            self._process(silence)
+            time.sleep(block_dur)
+
+    # Keep old name as alias so any external callers (Studio, Intercept) still work
+    def silence(self):
+        self.start_silence()
